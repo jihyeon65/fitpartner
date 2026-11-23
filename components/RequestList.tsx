@@ -62,6 +62,9 @@ export default function RequestList() {
               {partner?.nickname ?? "알 수 없는 상대"}
             </span>
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[status]}`}>{status}</span>
+            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-950 dark:text-sky-300">
+              {request.mode}
+            </span>
             {status === "대기" ? (
               <span className="text-sm text-zinc-600 dark:text-zinc-400">
                 만료까지 {formatRemaining(remainingMs(request, now))}

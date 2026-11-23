@@ -1,9 +1,9 @@
 // Design Ref: §3.6 일정 관리 — 시간대를 고르고 날짜를 정해 일정 등록, 장소는 선택 사항, "운동 완료" 체크(내 쪽·상대 쪽 각각)
 // Design Ref: §5 Schedule — 일정을 등록한 사용자(ownerNickname), 완료 체크 시각(doneAt, 2주 안 완료 계산용)
-// Plan: 작업 18번 "일정 관리"
+// Plan: 작업 18번 "일정 관리", 작업 23번(온라인 일정은 장소 없이 저장)
 //
 // 화면 없이 계산만 하는 코드라서, 같은 입력이면 항상 같은 결과가 나온다.
-import type { Schedule, SchedulePlace, Slot } from "./options";
+import type { Mode, Schedule, SchedulePlace, Slot } from "./options";
 
 /** 날짜 글자(YYYY-MM-DD)를 실제 달력 날짜로 읽는다. 형식이 틀리거나 없는 날짜(예: 2월 30일)면 null */
 function parseDate(date: string): Date | null {
@@ -37,12 +37,12 @@ export type CreateScheduleResult = { ok: true; schedule: Schedule } | { ok: fals
  * @param existing 이미 등록된 일정들 (같은 매칭에는 하나만 등록한다)
  */
 export function createSchedule(
-  input: { matchId: string; ownerNickname: string; slot: Slot | null; date: string; place?: SchedulePlace },
+  input: { matchId: string; ownerNickname: string; mode: Mode; slot: Slot | null; date: string; place?: SchedulePlace },
   allowedSlots: readonly Slot[],
   existing: readonly Schedule[],
   today: string,
 ): CreateScheduleResult {
-  const { matchId, ownerNickname, slot, date, place } = input;
+  const { matchId, ownerNickname, mode, slot, date, place } = input;
   if (existing.some((s) => s.matchId === matchId)) return { ok: false, message: "이미 일정을 등록한 매칭이에요." };
   if (!slot || !allowedSlots.includes(slot)) return { ok: false, message: "함께 가능한 시간대를 골라 주세요." };
   if (!parseDate(date)) return { ok: false, message: "날짜를 골라 주세요." };
@@ -53,7 +53,17 @@ export function createSchedule(
   }
   return {
     ok: true,
-    schedule: { matchId, ownerNickname, slot, date, myDone: false, partnerDone: false, ...(place ? { place } : {}) },
+    // 온라인 일정에는 장소를 저장하지 않는다. (장소는 오프라인에서만 고른다)
+    schedule: {
+      matchId,
+      ownerNickname,
+      mode,
+      slot,
+      date,
+      myDone: false,
+      partnerDone: false,
+      ...(place && mode === "오프라인" ? { place } : {}),
+    },
   };
 }
 

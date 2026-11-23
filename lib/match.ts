@@ -1,10 +1,10 @@
 // Design Ref: §4.3 매칭 흐름 — 요청 저장(만료 시각 = 지금 + EXPIRE_MINUTES), 가상 프로필 중 5명은 "대기"로 남고 나머지는 3초 뒤 자동 수락
 // PRD 5번 매칭 규칙 — 요청은 7일 뒤 만료(시연은 1분), 동시 요청은 "대기" 상태만 세서 최대 3명
-// Plan: 작업 14번 "매칭 요청"
+// Plan: 작업 14번 "매칭 요청", 작업 23번(요청에 만나는 방식 기록)
 //
 // 요청의 "지금 상태"는 저장해 둔 글자가 아니라 시각을 보고 계산한다. 그래서 화면을 닫았다 열어도 같은 결과가 나오고,
 // 3초 뒤 수락·만료가 타이머에 의존하지 않는다.
-import type { MatchRequest, Profile } from "./options";
+import type { MatchRequest, Mode, Profile } from "./options";
 import { NON_ACCEPTING_PROFILE_IDS } from "./profiles";
 
 /**
@@ -72,6 +72,7 @@ export function createRequest(
   candidateId: string,
   existing: readonly MatchRequest[],
   nowMs: number,
+  mode: Mode,
 ): CreateRequestResult {
   if (activeRequestTo(existing, candidateId, nowMs)) return { ok: false, reason: "already-requested" };
   if (pendingCount(existing, nowMs) >= MAX_PENDING_REQUESTS) return { ok: false, reason: "too-many-pending" };
@@ -81,6 +82,7 @@ export function createRequest(
       id: `req-${nowMs}-${Math.random().toString(36).slice(2, 8)}`,
       fromNickname: me.nickname,
       toProfileId: candidateId,
+      mode,
       status: "대기",
       createdAt: new Date(nowMs).toISOString(),
       expiresAt: new Date(nowMs + EXPIRE_MINUTES * 60_000).toISOString(),

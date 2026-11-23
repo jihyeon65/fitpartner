@@ -4,7 +4,7 @@
 //   장소 고르기 버튼(선택 사항: 장소 화면의 선택 모드에서 시설을 골라 이름·주소를 일정에 저장),
 //   등록된 일정마다 "운동 완료" 체크(내 쪽·상대 쪽 각각, 가상 프로필 쪽은 시연자가 대신 체크)
 // Design Ref: §4.4 — 어느 매칭인지(matchId)와 고른 시설은 브라우저 저장소의 임시 값으로 장소 화면과 주고받는다.
-// Plan: 작업 18번 "일정 관리"
+// Plan: 작업 18번 "일정 관리", 작업 23번(온라인 매칭은 장소 고르기를 숨기고 "온라인"으로 저장)
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -140,7 +140,9 @@ function ScheduleForm({
   const [slot, setSlot] = useState<Slot | null>(draft?.slot ?? null);
   const [date, setDate] = useState(draft?.date ?? "");
   // 고른 장소는 임시 값(저장소)이 기준이다. 장소 화면을 다녀온 뒤 이 화면이 이전 상태 그대로 다시 보일 수 있어서, 처음 값만 믿지 않는다.
-  const place = draft?.place;
+  // 온라인 매칭은 장소가 없다. (장소는 오프라인에서만 고른다)
+  const online = request.mode === "온라인";
+  const place = online ? undefined : draft?.place;
   const [error, setError] = useState("");
   const today = todayString();
 
@@ -155,7 +157,7 @@ function ScheduleForm({
     // 화면에 있는 목록이 아니라 저장소의 최신 일정을 기준으로 다시 확인한다.
     const latest = parseSchedules(getSchedulesJson(me.nickname));
     const result = createSchedule(
-      { matchId: request.id, ownerNickname: me.nickname, slot, date, place },
+      { matchId: request.id, ownerNickname: me.nickname, mode: request.mode, slot, date, place },
       common,
       latest,
       today,
@@ -206,33 +208,39 @@ function ScheduleForm({
         />
       </label>
 
-      <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">운동 장소 (선택)</span>
-        {place ? (
-          <p className="text-sm text-zinc-700 dark:text-zinc-300">
-            {place.name} · {place.address}
-          </p>
-        ) : (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">장소를 고르지 않아도 일정을 등록할 수 있어요.</p>
-        )}
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={goPickPlace}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            장소 고르기
-          </button>
+      {online ? (
+        <p className="rounded-md bg-sky-50 p-3 text-sm text-sky-900 dark:bg-sky-950 dark:text-sky-200">
+          온라인으로 만나는 매칭이에요. 장소 없이 온라인으로 저장돼요.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">운동 장소 (선택)</span>
           {place ? (
+            <p className="text-sm text-zinc-700 dark:text-zinc-300">
+              {place.name} · {place.address}
+            </p>
+          ) : (
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">장소를 고르지 않아도 일정을 등록할 수 있어요.</p>
+          )}
+          <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => saveScheduleDraft(me.nickname, { matchId: request.id, slot: slot ?? undefined, date: date || undefined })}
-              className="rounded-md px-3 py-1.5 text-sm text-zinc-600 hover:underline dark:text-zinc-400">
-              장소 빼기
+              onClick={goPickPlace}
+              className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            >
+              장소 고르기
             </button>
-          ) : null}
+            {place ? (
+              <button
+                type="button"
+                onClick={() => saveScheduleDraft(me.nickname, { matchId: request.id, slot: slot ?? undefined, date: date || undefined })}
+                className="rounded-md px-3 py-1.5 text-sm text-zinc-600 hover:underline dark:text-zinc-400">
+                장소 빼기
+              </button>
+            ) : null}
+          </div>
         </div>
-      </div>
+      )}
 
       {error ? (
         <p role="alert" className="text-sm text-red-600 dark:text-red-400">
@@ -268,7 +276,9 @@ function ScheduleCard({ me, partner, schedule }: { me: Profile; partner: Profile
         {schedule.date} · {schedule.slot}
       </p>
       <p className="text-sm text-zinc-700 dark:text-zinc-300">
-        장소: {schedule.place ? `${schedule.place.name} · ${schedule.place.address}` : "정하지 않았어요"}
+        {schedule.mode === "온라인"
+          ? "방식: 온라인 (각자 있는 곳에서 화상·메신저로 함께 운동해요)"
+          : `장소: ${schedule.place ? `${schedule.place.name} · ${schedule.place.address}` : "정하지 않았어요"}`}
       </p>
 
       <div className="flex flex-col gap-2">

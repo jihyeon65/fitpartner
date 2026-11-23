@@ -71,6 +71,8 @@ export interface MatchRequest {
   /** 요청한 사용자 (닉네임별 지표용) */
   fromNickname: string;
   toProfileId: string;
+  /** 만나는 방식 (작업 23번). 옛 요청에 없으면 오프라인으로 읽는다. */
+  mode: Mode;
   status: "대기" | "수락" | "만료";
   createdAt: string;
   expiresAt: string;
@@ -106,6 +108,8 @@ export interface Schedule {
   matchId: string;
   /** 일정을 등록한 사용자 (닉네임별 지표용) */
   ownerNickname: string;
+  /** 만나는 방식 (작업 23번). 온라인이면 장소 없이 저장한다. */
+  mode: Mode;
   slot: Slot;
   /** 실제 운동 날짜 */
   date: string;

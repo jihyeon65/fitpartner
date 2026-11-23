@@ -244,6 +244,8 @@ export function parseRequests(json: string | null): MatchRequest[] {
         id: r.id,
         fromNickname: r.fromNickname,
         toProfileId: r.toProfileId,
+        // 만나는 방식이 없던 옛 요청은 오프라인으로 읽는다.
+        mode: isOneOf(MODES, r.mode) ? r.mode : "오프라인",
         status: r.status,
         createdAt: r.createdAt,
         expiresAt: r.expiresAt,
@@ -398,12 +400,14 @@ export function parseSchedules(json: string | null): Schedule[] {
       result.push({
         matchId: s.matchId,
         ownerNickname: s.ownerNickname,
+        mode: isOneOf(MODES, s.mode) ? s.mode : "오프라인",
         slot: s.slot,
         date: s.date,
         myDone: s.myDone,
         partnerDone: s.partnerDone,
         doneAt: typeof s.doneAt === "string" && !Number.isNaN(Date.parse(s.doneAt)) ? s.doneAt : undefined,
-        place: parsePlace(s.place),
+        // 온라인 일정에는 장소가 없다.
+        place: s.mode === "온라인" ? undefined : parsePlace(s.place),
       });
     }
     return result;

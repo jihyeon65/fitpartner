@@ -3,14 +3,17 @@
 // Design Ref: §3.4 매칭 — 매칭 완료 화면: 안전 안내, 만족도 2문항(요청한 사용자만 응답), 일정 잡기 버튼
 //   AI 프로그램이 화면에 보이지 않은 경우에는 "프로그램 도움 기대도" 문항을 숨기고 지표에서 제외한다.
 // Design Ref: §5 MatchRequest — satisfaction("추천이 잘 맞았나요?"), programHelpful("추천된 프로그램이 도움이 될 것 같나요?")
-// Plan: 작업 15번 "매칭 완료 화면" — 이 응답은 작업 19번 지표에서 읽는다.
+// Plan: 작업 15번 "매칭 완료 화면", 작업 23번(온라인용 안전 안내) — 이 응답은 작업 19번 지표에서 읽는다.
 import Link from "next/link";
 import { useState } from "react";
 import type { MatchRequest, Profile } from "@/lib/options";
 import { getRequestsJson, parseRequests, saveRequests } from "@/lib/store";
 
-/** 처음 만날 때의 안전 안내 문구 */
-export const SAFETY_NOTICE = "처음 만날 때는 공개된 장소에서 만나세요";
+/** 만나는 방식별 안전 안내 문구 (오프라인은 처음 만날 때, 온라인은 개인정보 공유에 대한 안내) */
+export const SAFETY_NOTICES = {
+  오프라인: "처음 만날 때는 공개된 장소에서 만나세요",
+  온라인: "온라인에서도 연락처·계정 등 개인정보는 함부로 공유하지 마세요",
+} as const;
 
 export default function MatchComplete({
   request,
@@ -58,11 +61,13 @@ export default function MatchComplete({
         <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
           매칭 완료 · {partner?.nickname ?? "알 수 없는 상대"}
         </h2>
-        <p className="mt-1 text-zinc-600 dark:text-zinc-400">상대방이 매칭 요청을 수락했어요.</p>
+        <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+          상대방이 매칭 요청을 수락했어요. ({request.mode}으로 만나요)
+        </p>
       </div>
 
       <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-        ⚠ {SAFETY_NOTICE}.
+        ⚠ {SAFETY_NOTICES[request.mode]}.
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">

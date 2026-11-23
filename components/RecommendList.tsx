@@ -153,7 +153,7 @@ function RecommendCard({
   function handleRequest() {
     // 화면에 보이는 목록이 아니라 저장소의 최신 목록을 기준으로 다시 확인한다. (다른 탭에서 보냈을 수 있으므로)
     const latest = parseRequests(getRequestsJson(me.nickname));
-    const result = createRequest(me, item.profile.id, latest, Date.now());
+    const result = createRequest(me, item.profile.id, latest, Date.now(), item.meetMode);
     if (!result.ok) {
       setError(result.reason === "too-many-pending" ? "대기 중인 요청이 3명이에요." : "이미 요청한 사람이에요.");
       return;
