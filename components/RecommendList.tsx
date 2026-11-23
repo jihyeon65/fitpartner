@@ -4,14 +4,17 @@
 // Design Ref: §7 API 명세 — 저장된 프로필을 POST /api/recommend 로 보내 점수 높은 순 목록을 받는다. (AI 없음)
 // Plan: 작업 9번 "추천 결과 화면(AI 없이 먼저)"
 // Plan: 작업 13번 "추천 결과 화면에 AI 결과 연결" — 카드의 AI 분석 펼침은 AnalysisPanel 이 맡는다.
-//   매칭 요청 버튼 동작은 작업 14번에서 이어서 만든다.
+// Plan: 작업 14번 "매칭 요청" — 카드의 [매칭 요청] 버튼: 대기 중인 요청이 3명이면 비활성, 이미 요청한 사람은 "요청함"
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { Profile } from "@/lib/options";
+import type { MatchRequest, Profile } from "@/lib/options";
 import { judgeSkillGap } from "@/lib/skill-gap";
+import { activeRequestTo, createRequest, MAX_PENDING_REQUESTS, pendingCount } from "@/lib/match";
+import { getRequestsJson, parseRequests, saveRequests } from "@/lib/store";
 import { useNickname } from "@/lib/use-nickname";
 import AnalysisPanel from "./AnalysisPanel";
 import { useProfile } from "@/lib/use-profile";
+import { useNow, useRequests } from "@/lib/use-requests";
 
 /** /api/recommend 가 돌려주는 후보 한 명 */
 interface RecommendItem {
@@ -29,6 +32,9 @@ export default function RecommendList() {
   const nickname = useNickname();
   const profile = useProfile(nickname ?? null);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const requests = useRequests(nickname ?? null);
+  // 3초 뒤 수락·남은 시간처럼 시간이 지나면 달라지는 상태를 다시 계산하려고 현재 시각을 받는다.
+  const now = useNow();
 
   const key = profile ? JSON.stringify(profile) : null;
 
@@ -61,7 +67,7 @@ export default function RecommendList() {
   }, [key]);
 
   // 서버가 만든 첫 화면에서는 아직 브라우저 저장소를 모르므로 아무것도 그리지 않는다.
-  if (nickname === undefined || profile === undefined) return null;
+  if (nickname === undefined || profile === undefined || requests === undefined) return null;
 
   if (nickname === null) {
     return <GuideBox text="먼저 닉네임을 정해 주세요." href="/" button="닉네임 정하러 가기" />;
@@ -105,7 +111,7 @@ export default function RecommendList() {
       <ul className="flex flex-col gap-4">
         {items.map((item) => (
           // 내 프로필이 바뀌면 카드를 새로 만들어, 이전 프로필로 받은 AI 분석이 남지 않게 한다.
-          <RecommendCard key={`${key}:${item.profile.id}`} item={item} me={profile} />
+          <RecommendCard key={`${key}:${item.profile.id}`} item={item} me={profile} requests={requests} now={now} />
         ))}
       </ul>
     </div>
@@ -126,8 +132,37 @@ function GuideBox({ text, href, button }: { text: string; href: string; button: 
   );
 }
 
-function RecommendCard({ item, me }: { item: RecommendItem; me: Profile }) {
+function RecommendCard({
+  item,
+  me,
+  requests,
+  now,
+}: {
+  item: RecommendItem;
+  me: Profile;
+  requests: MatchRequest[];
+  now: number;
+}) {
   const { badge } = judgeSkillGap(me, item.profile);
+  const [error, setError] = useState("");
+  const alreadyRequested = activeRequestTo(requests, item.profile.id, now) !== undefined;
+  const tooMany = !alreadyRequested && pendingCount(requests, now) >= MAX_PENDING_REQUESTS;
+
+  function handleRequest() {
+    // 화면에 보이는 목록이 아니라 저장소의 최신 목록을 기준으로 다시 확인한다. (다른 탭에서 보냈을 수 있으므로)
+    const latest = parseRequests(getRequestsJson(me.nickname));
+    const result = createRequest(me, item.profile.id, latest, Date.now());
+    if (!result.ok) {
+      setError(result.reason === "too-many-pending" ? "대기 중인 요청이 3명이에요." : "이미 요청한 사람이에요.");
+      return;
+    }
+    if (!saveRequests(me.nickname, [...latest, result.request])) {
+      setError("이 브라우저에서는 요청을 저장할 수 없어요. 브라우저의 저장소 설정을 확인해 주세요.");
+      return;
+    }
+    setError("");
+  }
+
   return (
     <li className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
       <div className="flex flex-wrap items-center gap-2">
@@ -140,15 +175,30 @@ function RecommendCard({ item, me }: { item: RecommendItem; me: Profile }) {
         일치 조건: {item.matchedConditions.join(" · ")}
       </p>
       <AnalysisPanel me={me} candidateId={item.profile.id} />
-      <div className="mt-3">
-        {/* 매칭 요청 기능은 작업 14번에서 연결한다. 그 전까지는 눌러지지 않게 둔다. */}
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         <button
           type="button"
-          disabled
-          className="rounded-md bg-zinc-300 px-4 py-2 font-medium text-zinc-500 disabled:cursor-not-allowed dark:bg-zinc-800"
+          onClick={handleRequest}
+          disabled={alreadyRequested || tooMany}
+          className="rounded-md bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 dark:disabled:bg-zinc-800"
         >
-          매칭 요청
+          {alreadyRequested ? "요청함" : "매칭 요청"}
         </button>
+        {alreadyRequested ? (
+          <Link href="/matches" className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">
+            보낸 요청 보기
+          </Link>
+        ) : null}
+        {tooMany ? (
+          <span className="text-sm text-amber-700 dark:text-amber-400">
+            대기 중인 요청이 {MAX_PENDING_REQUESTS}명이에요. 수락되거나 만료되면 다시 보낼 수 있어요.
+          </span>
+        ) : null}
+        {error ? (
+          <span role="alert" className="text-sm text-red-600 dark:text-red-400">
+            {error}
+          </span>
+        ) : null}
       </div>
     </li>
   );

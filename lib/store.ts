@@ -1,13 +1,23 @@
 // Design Ref: §5 저장 위치 — 내 프로필·요청·일정·지표는 브라우저 저장소에 닉네임별로 저장한다.
 // Plan: 작업 4번 "닉네임만 입력하는 실습용 간단 로그인"에서 이 파일을 만들었고,
 //   작업 5번 "프로필 입력 화면"에서 프로필 저장을 추가했다.
-//   요청·일정을 저장하는 기능은 이후 작업(14번, 18번 등)에서 이어서 추가한다.
+//   작업 14번 "매칭 요청"에서 요청 저장을 추가했고, 일정 저장은 작업 18번에서 이어서 추가한다.
 //
 // 브라우저 저장소(localStorage)는 사생활 보호 모드나 저장소 차단 상황에서 오류를 낼 수 있어서,
 // 모든 읽기·쓰기를 try/catch로 감싸고 실패해도 화면이 깨지지 않게 한다.
 // 이 파일의 함수는 브라우저에서만 호출한다. (서버에서 부르면 아무 일도 하지 않고 null을 돌려준다)
 
-import { DISTRICTS, GOALS, LEVELS, PARTNER_CONDITIONS, SLOTS, SPORTS, STYLES, type Profile } from "./options";
+import {
+  DISTRICTS,
+  GOALS,
+  LEVELS,
+  PARTNER_CONDITIONS,
+  SLOTS,
+  SPORTS,
+  STYLES,
+  type MatchRequest,
+  type Profile,
+} from "./options";
 
 /** 현재 닉네임을 저장하는 키 */
 const NICKNAME_KEY = "fitpartner:nickname";
@@ -176,6 +186,96 @@ export function subscribeProfile(callback: () => void): () => void {
   window.addEventListener("storage", onStorage);
   return () => {
     window.removeEventListener(PROFILE_EVENT, callback);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+// ───────────── 보낸 매칭 요청 (닉네임별로 따로 저장) ─────────────
+// Plan: 작업 14번 "매칭 요청"
+
+/** 같은 탭 안에서 매칭 요청이 바뀌었음을 알리는 이벤트 이름 */
+const REQUESTS_EVENT = "fitpartner:requests-changed";
+
+function requestsKey(nickname: string): string {
+  return `fitpartner:user:${encodeURIComponent(nickname)}:requests`;
+}
+
+/** 저장된 매칭 요청 원문(JSON 글자). 없거나 저장소를 쓸 수 없으면 null */
+export function getRequestsJson(nickname: string): string | null {
+  const storage = getStorage();
+  if (!storage) return null;
+  try {
+    return storage.getItem(requestsKey(nickname));
+  } catch {
+    return null;
+  }
+}
+
+/** 저장된 글자를 매칭 요청 목록으로 바꾼다. 모양이 맞지 않는 항목은 버린다. (저장소 값은 직접 고칠 수 있으므로) */
+export function parseRequests(json: string | null): MatchRequest[] {
+  if (json === null) return [];
+  try {
+    const data: unknown = JSON.parse(json);
+    if (!Array.isArray(data)) return [];
+    const result: MatchRequest[] = [];
+    for (const item of data) {
+      if (typeof item !== "object" || item === null) continue;
+      const r = item as Record<string, unknown>;
+      if (
+        typeof r.id !== "string" ||
+        typeof r.fromNickname !== "string" ||
+        typeof r.toProfileId !== "string" ||
+        !isOneOf(["대기", "수락", "만료"] as const, r.status) ||
+        typeof r.createdAt !== "string" ||
+        typeof r.expiresAt !== "string" ||
+        Number.isNaN(Date.parse(r.createdAt)) ||
+        Number.isNaN(Date.parse(r.expiresAt))
+      ) {
+        continue;
+      }
+      result.push({
+        id: r.id,
+        fromNickname: r.fromNickname,
+        toProfileId: r.toProfileId,
+        status: r.status,
+        createdAt: r.createdAt,
+        expiresAt: r.expiresAt,
+        satisfaction: typeof r.satisfaction === "boolean" ? r.satisfaction : undefined,
+        programHelpful: typeof r.programHelpful === "boolean" ? r.programHelpful : undefined,
+      });
+    }
+    return result;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 이 닉네임의 매칭 요청 목록 전체를 저장한다.
+ * @returns 저장에 성공하면 true
+ */
+export function saveRequests(nickname: string, requests: MatchRequest[]): boolean {
+  const storage = getStorage();
+  if (!storage) return false;
+  try {
+    storage.setItem(requestsKey(nickname), JSON.stringify(requests));
+  } catch {
+    return false;
+  }
+  window.dispatchEvent(new Event(REQUESTS_EVENT));
+  return true;
+}
+
+/** 매칭 요청이 바뀌면 callback을 부른다. (useSyncExternalStore에 넘기는 구독 함수) */
+export function subscribeRequests(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key.endsWith(":requests")) callback();
+  };
+  window.addEventListener(REQUESTS_EVENT, callback);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(REQUESTS_EVENT, callback);
     window.removeEventListener("storage", onStorage);
   };
 }
