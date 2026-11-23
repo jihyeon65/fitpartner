@@ -1,8 +1,8 @@
 // Design Ref: §3 화면 구성 — 모든 화면 맨 위의 헤더(서비스 이름 · 닉네임 · 메뉴 · 닉네임 바꾸기)
-// Plan: 작업 2번 "기본 화면 틀"
-// 닉네임 로그인(작업 4번)과 브라우저 저장소(lib/store.ts)가 아직 없어서, 닉네임 자리는 안내 문구로 둔다.
+// Plan: 작업 2번 "기본 화면 틀", 작업 4번 "닉네임만 입력하는 실습용 간단 로그인"
 import Link from "next/link";
 import NavLinks from "./NavLinks";
+import NicknameBadge from "./NicknameBadge";
 
 export default function SiteHeader() {
   return (
@@ -14,16 +14,7 @@ export default function SiteHeader() {
           </Link>
           <NavLinks />
         </div>
-        <div className="flex items-center gap-3 text-sm text-zinc-600 dark:text-zinc-400">
-          {/* 로그인 기능(작업 4번)을 만들면 실제 닉네임으로 바꾼다. */}
-          <span>닉네임: 아직 없음</span>
-          <Link
-            href="/"
-            className="rounded-md border border-zinc-300 px-2.5 py-1 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
-            닉네임 바꾸기
-          </Link>
-        </div>
+        <NicknameBadge />
       </div>
     </header>
   );
