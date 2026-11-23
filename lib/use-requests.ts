@@ -1,16 +1,20 @@
 // Design Ref: §3.4 매칭 — 화면에서 이 닉네임의 보낸 요청 목록을 읽는 훅, 시간이 흐르면 상태가 바뀌도록 현재 시각도 준다.
 // Plan: 작업 14번 "매칭 요청"
 import { useMemo, useSyncExternalStore } from "react";
+import type { UserRecord } from "./metrics";
 import type { MatchRequest, Schedule } from "./options";
 import {
+  getAllUsersSnapshot,
   getProgramSeenJson,
   getRequestsJson,
   getScheduleDraftJson,
   getSchedulesJson,
+  parseAllUsers,
   parseProgramSeen,
   parseRequests,
   parseScheduleDraft,
   parseSchedules,
+  subscribeAllUsers,
   subscribeProgramSeen,
   subscribeRequests,
   subscribeScheduleDraft,
@@ -49,6 +53,12 @@ export function useScheduleDraft(nickname: string | null): ScheduleDraft | null 
     () => undefined,
   );
   return useMemo(() => (json === undefined ? undefined : parseScheduleDraft(json)), [json]);
+}
+
+/** 이 브라우저의 모든 닉네임 기록. undefined는 아직 브라우저 저장소를 읽기 전이라는 뜻이다. (지표 합산용) */
+export function useAllUsers(): UserRecord[] | undefined {
+  const snapshot = useSyncExternalStore(subscribeAllUsers, getAllUsersSnapshot, () => undefined);
+  return useMemo(() => (snapshot === undefined ? undefined : parseAllUsers(snapshot)), [snapshot]);
 }
 
 /** AI 프로그램을 화면에서 본 후보의 id 목록. undefined는 아직 브라우저 저장소를 읽기 전이라는 뜻이다. */

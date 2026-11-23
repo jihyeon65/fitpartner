@@ -21,6 +21,7 @@ import {
   type SchedulePlace,
   type Slot,
 } from "./options";
+import type { UserRecord } from "./metrics";
 
 /** 현재 닉네임을 저장하는 키 */
 const NICKNAME_KEY = "fitpartner:nickname";
@@ -508,4 +509,55 @@ export function subscribeScheduleDraft(callback: () => void): () => void {
     window.removeEventListener(DRAFT_EVENT, callback);
     window.removeEventListener("storage", onStorage);
   };
+}
+
+// ───────────── 이 브라우저의 모든 닉네임 기록 (지표 합산용) ─────────────
+// Design Ref: §3.7 지표 — 이 브라우저에 저장된 모든 닉네임의 기록을 합산해 보여준다.
+// Plan: 작업 19번 "지표 기록"
+
+const USER_KEY_PATTERN = /^fitpartner:user:([^:]+):(profile|requests|schedules)$/;
+
+/**
+ * 모든 닉네임의 프로필·요청·일정 원문을 하나의 글자로 모은다. (닉네임 순서로 정렬해서, 기록이 같으면 항상 같은 글자가 나온다)
+ * 저장소를 쓸 수 없으면 null
+ */
+export function getAllUsersSnapshot(): string | null {
+  const storage = getStorage();
+  if (!storage) return null;
+  try {
+    const grouped: Record<string, Record<string, string>> = {};
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i);
+      const match = key ? USER_KEY_PATTERN.exec(key) : null;
+      if (!key || !match) continue;
+      const value = storage.getItem(key);
+      if (value !== null) (grouped[match[1]] ??= {})[match[2]] = value;
+    }
+    return JSON.stringify(Object.fromEntries(Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b))));
+  } catch {
+    return null;
+  }
+}
+
+/** 모아 둔 글자를 닉네임별 기록 목록으로 바꾼다. */
+export function parseAllUsers(snapshot: string | null): UserRecord[] {
+  if (snapshot === null) return [];
+  try {
+    const data: unknown = JSON.parse(snapshot);
+    if (typeof data !== "object" || data === null) return [];
+    return Object.entries(data as Record<string, Record<string, string>>).map(([encoded, raw]) => ({
+      nickname: decodeURIComponent(encoded),
+      profile: parseProfile(raw.profile ?? null),
+      requests: parseRequests(raw.requests ?? null),
+      schedules: parseSchedules(raw.schedules ?? null),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** 프로필·요청·일정 중 하나라도 바뀌면 callback을 부른다. */
+export function subscribeAllUsers(callback: () => void): () => void {
+  const stops = [subscribeProfile(callback), subscribeRequests(callback), subscribeSchedules(callback)];
+  return () => stops.forEach((stop) => stop());
 }
