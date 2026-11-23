@@ -3,12 +3,14 @@
 // Design Ref: §3.3 추천 결과 — 점수 안내 문구 1줄, 카드(닉네임·적합도 점수·일치 조건·배지), 최대 5개, 후보가 없으면 안내 문구
 // Design Ref: §7 API 명세 — 저장된 프로필을 POST /api/recommend 로 보내 점수 높은 순 목록을 받는다. (AI 없음)
 // Plan: 작업 9번 "추천 결과 화면(AI 없이 먼저)"
-//   AI 추천 이유·연습 방식·프로그램은 작업 10~13번에서, 매칭 요청 버튼 동작은 작업 14번에서 이어서 만든다.
+// Plan: 작업 13번 "추천 결과 화면에 AI 결과 연결" — 카드의 AI 분석 펼침은 AnalysisPanel 이 맡는다.
+//   매칭 요청 버튼 동작은 작업 14번에서 이어서 만든다.
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Profile } from "@/lib/options";
 import { judgeSkillGap } from "@/lib/skill-gap";
 import { useNickname } from "@/lib/use-nickname";
+import AnalysisPanel from "./AnalysisPanel";
 import { useProfile } from "@/lib/use-profile";
 
 /** /api/recommend 가 돌려주는 후보 한 명 */
@@ -102,7 +104,8 @@ export default function RecommendList() {
       </p>
       <ul className="flex flex-col gap-4">
         {items.map((item) => (
-          <RecommendCard key={item.profile.id} item={item} me={profile} />
+          // 내 프로필이 바뀌면 카드를 새로 만들어, 이전 프로필로 받은 AI 분석이 남지 않게 한다.
+          <RecommendCard key={`${key}:${item.profile.id}`} item={item} me={profile} />
         ))}
       </ul>
     </div>
@@ -136,6 +139,7 @@ function RecommendCard({ item, me }: { item: RecommendItem; me: Profile }) {
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
         일치 조건: {item.matchedConditions.join(" · ")}
       </p>
+      <AnalysisPanel me={me} candidateId={item.profile.id} />
       <div className="mt-3">
         {/* 매칭 요청 기능은 작업 14번에서 연결한다. 그 전까지는 눌러지지 않게 둔다. */}
         <button
