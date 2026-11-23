@@ -1,6 +1,6 @@
 // Design Ref: §3.4 매칭 — 화면에서 이 닉네임의 보낸 요청 목록을 읽는 훅, 시간이 흐르면 상태가 바뀌도록 현재 시각도 준다.
 // Plan: 작업 14번 "매칭 요청"
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import type { MatchRequest } from "./options";
 import { getRequestsJson, parseRequests, subscribeRequests } from "./store";
 
@@ -17,12 +17,24 @@ export function useRequests(nickname: string | null): MatchRequest[] | undefined
   return useMemo(() => (json === undefined ? undefined : parseRequests(json)), [json]);
 }
 
-/** 일정한 간격으로 바뀌는 현재 시각(밀리초). 남은 시간·3초 뒤 수락 표시를 갱신하는 데 쓴다. */
-export function useNow(intervalMs = 1000): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(timer);
-  }, [intervalMs]);
-  return now;
+// 현재 시각은 모든 화면이 함께 쓰는 하나의 값으로 둔다. (서버가 만드는 첫 화면에서는 시각을 모르므로 0으로 둔다)
+let lastTick = 0;
+
+function subscribeTick(callback: () => void): () => void {
+  const timer = setInterval(() => {
+    lastTick = Date.now();
+    callback();
+  }, 1000);
+  return () => clearInterval(timer);
+}
+
+function getTick(): number {
+  // 처음 읽을 때만 현재 시각을 넣고, 그 뒤에는 1초마다 바뀐 값을 그대로 돌려준다.
+  if (lastTick === 0) lastTick = Date.now();
+  return lastTick;
+}
+
+/** 1초마다 바뀌는 현재 시각(밀리초). 남은 시간·3초 뒤 수락 표시를 갱신하는 데 쓴다. */
+export function useNow(): number {
+  return useSyncExternalStore(subscribeTick, getTick, () => 0);
 }
