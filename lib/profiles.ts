@@ -1,7 +1,7 @@
 // Design Ref: §5 저장 위치 — 가상 프로필 20명은 서버 코드 안(lib/profiles.ts)에 둔다.
 // Design Ref: §10 시연용 데이터 — 러닝·배드민턴·헬스 고르게, 실력 1~2단계 40% 이상,
 //   시연에서 쓰는 조합(종목·구·시간)은 필수 조건을 통과하는 후보가 5명 이상 나오도록 구성한다.
-// Plan: 작업 3번 "가상 프로필 20명 데이터 만들기"
+// Plan: 작업 3번 "가상 프로필 20명 데이터 만들기", 작업 21번 "확장 기초"(진행 방식 필드 추가)
 //
 // 모두 실제 사람이 아닌 가상 데이터이고, 이름·연락처 같은 개인정보는 없다. (PRD 7번)
 //
@@ -13,7 +13,8 @@
 //      배드민턴·유성구 5명 / 헬스·중구 5명 / 러닝·대덕구 5명
 import type { Profile } from "./options";
 
-export const VIRTUAL_PROFILES: Profile[] = [
+/** 진행 방식을 뺀 가상 프로필 원본. (진행 방식은 아래 VIRTUAL_PROFILES 에서 붙인다) */
+const BASE_PROFILES: Omit<Profile, "modes">[] = [
   // ── 배드민턴 (7) ──
   {
     id: "virtual-01", nickname: "셔틀콕러버", sport: "배드민턴", level: 2, goal: "다이어트",
@@ -100,6 +101,12 @@ export const VIRTUAL_PROFILES: Profile[] = [
     style: "도전적으로", slots: ["주말 오전", "주말 오후"], district: "유성구", partnerConditions: [],
   },
 ];
+
+/**
+ * 가상 프로필 전체. 진행 방식은 우선 모두 오프라인으로 둔다.
+ * (작업 22번에서 온라인·둘 다를 섞고 맨몸운동 5명을 더해 25명으로 만든다)
+ */
+export const VIRTUAL_PROFILES: Profile[] = BASE_PROFILES.map((profile) => ({ ...profile, modes: ["오프라인"] }));
 
 /**
  * 매칭 요청을 받아도 수락하지 않고 "대기"로 남겨 두는 가상 프로필 5명.

@@ -6,6 +6,7 @@ import {
   DISTRICTS,
   GOALS,
   LEVELS,
+  MODES,
   PARTNER_CONDITIONS,
   SLOTS,
   SPORTS,
@@ -38,6 +39,8 @@ export function checkProfileInput(input: unknown): ProfileCheck {
   if (!isOneOf(STYLES, p.style)) missing.push("성향");
   if (!isListOf(SLOTS, p.slots) || p.slots.length === 0) missing.push("가능 시간");
   if (!isOneOf(DISTRICTS, p.district)) missing.push("희망 지역");
+  // 진행 방식은 1개 이상 골라야 한다. (선택지 밖의 값이 섞여 있어도 거절)
+  if (!isListOf(MODES, p.modes) || p.modes.length === 0) missing.push("진행 방식");
 
   // 파트너 조건은 선택 항목이다. 없으면 빈 목록으로 보고, 있는데 선택지 밖의 값이면 거절한다.
   const conditions = p.partnerConditions ?? [];
@@ -51,6 +54,7 @@ export function checkProfileInput(input: unknown): ProfileCheck {
     !isOneOf(STYLES, p.style) ||
     !isListOf(SLOTS, p.slots) ||
     !isOneOf(DISTRICTS, p.district) ||
+    !isListOf(MODES, p.modes) ||
     !isListOf(PARTNER_CONDITIONS, conditions)
   ) {
     return { ok: false, missing };
@@ -69,6 +73,7 @@ export function checkProfileInput(input: unknown): ProfileCheck {
       style: p.style,
       slots: p.slots,
       district: p.district,
+      modes: p.modes,
       partnerConditions: conditions,
     },
   };

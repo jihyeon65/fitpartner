@@ -11,6 +11,7 @@ import {
   DISTRICTS,
   GOALS,
   LEVELS,
+  MODES,
   PARTNER_CONDITIONS,
   SLOTS,
   SPORTS,
@@ -153,6 +154,8 @@ export function parseProfile(json: string | null): Profile | null {
       style: p.style,
       slots: p.slots,
       district: p.district,
+      // 진행 방식이 없던 옛 프로필(작업 21번 이전에 저장한 것)은 오프라인으로 읽는다.
+      modes: isListOf(MODES, p.modes) && p.modes.length > 0 ? p.modes : ["오프라인"],
       partnerConditions: p.partnerConditions,
       profileCompletedAt: typeof p.profileCompletedAt === "string" ? p.profileCompletedAt : undefined,
     };

@@ -1,12 +1,18 @@
 // Design Ref: §5 데이터 모델 — 선택지와 타입을 이 파일 한 곳에 모은다.
 // 화면(프로필 입력)과 서버 코드(필터·점수 계산)가 같은 선택지를 쓰도록 하기 위함이다.
-// Plan: 작업 1번 "공통 선택지와 데이터 타입 정의"
+// Plan: 작업 1번 "공통 선택지와 데이터 타입 정의", 작업 21번 "확장 기초"(맨몸운동·진행 방식)
 
 // ───────────── 선택지 (모두 선택형, 자유 입력란 없음) ─────────────
 // `as const`로 적어 두면 값 목록과 타입을 한 번에 만들 수 있다.
 
-/** 지원 종목 (PRD 6번: 러닝·배드민턴·헬스 3개로 한정) */
-export const SPORTS = ["러닝", "배드민턴", "헬스"] as const;
+/** 지원 종목 (PRD 6번: 러닝·배드민턴·헬스·맨몸운동 4개로 한정. 맨몸운동은 v0.8에서 추가) */
+export const SPORTS = ["러닝", "배드민턴", "헬스", "맨몸운동"] as const;
+
+/** 운동 시설(지도·시설 검색)이 있는 종목. 맨몸운동은 시설이 없어서 뺀다. (DESIGN 12.1) */
+export const FACILITY_SPORTS = ["러닝", "배드민턴", "헬스"] as const;
+
+/** 진행 방식 (v0.8, DESIGN 12.2). 프로필에서는 복수 선택한다. */
+export const MODES = ["오프라인", "온라인"] as const;
 
 /** 실력 5단계 (1이 가장 낮음) */
 export const LEVELS = [1, 2, 3, 4, 5] as const;
@@ -29,6 +35,8 @@ export const PARTNER_CONDITIONS = ["비슷한 실력만 보기", "같은 운동 
 // ───────────── 선택지에서 만든 타입 ─────────────
 
 export type Sport = (typeof SPORTS)[number];
+export type FacilitySport = (typeof FACILITY_SPORTS)[number];
+export type Mode = (typeof MODES)[number];
 export type Level = (typeof LEVELS)[number];
 export type Goal = (typeof GOALS)[number];
 export type Style = (typeof STYLES)[number];
@@ -50,6 +58,8 @@ export interface Profile {
   slots: Slot[];
   /** 희망 지역 (구 단위) */
   district: District;
+  /** 진행 방식 (1개 이상). 온라인을 고르면 같은 구가 아니어도 매칭될 수 있다. */
+  modes: Mode[];
   partnerConditions: PartnerCondition[];
   /** [추천 받기]를 처음 누른 시각 (탐색 시간 측정용) */
   profileCompletedAt?: string;

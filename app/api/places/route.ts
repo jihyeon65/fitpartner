@@ -2,7 +2,7 @@
 //   선택지 밖의 값은 400, 샘플 데이터를 읽지 못하는 서버 오류는 500 "시설 정보를 불러오지 못했어요"
 //   (공공데이터 연동 시에는 502로 처리한다. 지금은 샘플 데이터라 해당 없음)
 // Plan: 작업 16번 "시설 샘플 데이터 만들기"
-import { DISTRICTS, SPORTS } from "@/lib/options";
+import { DISTRICTS, FACILITY_SPORTS } from "@/lib/options";
 import { findPlaces } from "@/lib/places";
 
 export async function GET(request: Request) {
@@ -10,7 +10,8 @@ export async function GET(request: Request) {
   const sport = searchParams.get("sport");
   const district = searchParams.get("district");
 
-  const validSport = SPORTS.find((item) => item === sport);
+  // 시설이 있는 종목(러닝·배드민턴·헬스)만 받는다. 맨몸운동은 시설이 없어서 400이다.
+  const validSport = FACILITY_SPORTS.find((item) => item === sport);
   const validDistrict = DISTRICTS.find((item) => item === district);
   if (!validSport || !validDistrict) {
     const missing = [!validSport ? "종목을" : null, !validDistrict ? "구를" : null].filter(Boolean).join(", ");

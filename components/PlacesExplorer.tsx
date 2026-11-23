@@ -10,7 +10,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { DISTRICTS, SPORTS, type District, type Place, type Sport } from "@/lib/options";
+import { DISTRICTS, FACILITY_SPORTS, type District, type FacilitySport, type Place } from "@/lib/options";
 import { getScheduleDraftJson, parseScheduleDraft, saveScheduleDraft } from "@/lib/store";
 import { useNickname } from "@/lib/use-nickname";
 import { useProfile } from "@/lib/use-profile";
@@ -32,9 +32,11 @@ export default function PlacesExplorer() {
   const profile = useProfile(nickname ?? null);
 
   // null이면 아직 직접 고르지 않은 상태라서 내 프로필의 값(없으면 첫 선택지)을 쓴다.
-  const [pickedSport, setPickedSport] = useState<Sport | null>(null);
+  const [pickedSport, setPickedSport] = useState<FacilitySport | null>(null);
   const [pickedDistrict, setPickedDistrict] = useState<District | null>(null);
-  const sport: Sport = pickedSport ?? profile?.sport ?? SPORTS[0];
+  // 내 종목이 맨몸운동처럼 시설이 없는 종목이면 첫 선택지(러닝)로 시작한다.
+  const profileSport = FACILITY_SPORTS.find((item) => item === profile?.sport);
+  const sport: FacilitySport = pickedSport ?? profileSport ?? FACILITY_SPORTS[0];
   const district: District = pickedDistrict ?? profile?.district ?? DISTRICTS[0];
 
   const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -72,7 +74,7 @@ export default function PlacesExplorer() {
     router.push(`/schedule?match=${encodeURIComponent(pickMatchId)}`);
   }
 
-  function changeSport(next: Sport) {
+  function changeSport(next: FacilitySport) {
     setPickedSport(next);
     setSelectedId(null);
   }
@@ -86,7 +88,7 @@ export default function PlacesExplorer() {
       <p className="text-sm text-zinc-600 dark:text-zinc-400">시설 정보는 샘플 데이터입니다.</p>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:gap-8">
-        <SingleChoice legend="종목" options={SPORTS} value={sport} onChange={(next) => next && changeSport(next)} />
+        <SingleChoice legend="종목" options={FACILITY_SPORTS} value={sport} onChange={(next) => next && changeSport(next)} />
         <SingleChoice legend="구" options={DISTRICTS} value={district} onChange={(next) => next && changeDistrict(next)} />
       </div>
 

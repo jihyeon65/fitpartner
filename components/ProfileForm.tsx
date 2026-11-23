@@ -4,7 +4,7 @@
 //   - 파트너 조건을 뺀 항목이 비면 "OO을 선택해 주세요" 안내를 보이고 [추천 받기]를 비활성으로 둔다.
 //   - [추천 받기]를 처음 누른 시각을 profileCompletedAt에 남긴다. (탐색 시간 측정용, 이후 다시 눌러도 바꾸지 않는다)
 // Design Ref: §5 저장 위치 — 프로필은 브라우저 저장소에 닉네임별로 저장한다.
-// Plan: 작업 5번 "프로필 입력 화면"
+// Plan: 작업 5번 "프로필 입력 화면", 작업 21번 "확장 기초"(진행 방식 선택 추가, 종목에 맨몸운동 추가)
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -12,6 +12,7 @@ import {
   DISTRICTS,
   GOALS,
   LEVELS,
+  MODES,
   PARTNER_CONDITIONS,
   SLOTS,
   SPORTS,
@@ -19,6 +20,7 @@ import {
   type District,
   type Goal,
   type Level,
+  type Mode,
   type PartnerCondition,
   type Profile,
   type Slot,
@@ -38,6 +40,7 @@ type FormState = {
   style: Style | null;
   slots: Slot[];
   district: District | null;
+  modes: Mode[];
   partnerConditions: PartnerCondition[];
 };
 
@@ -48,6 +51,7 @@ const EMPTY_FORM: FormState = {
   style: null,
   slots: [],
   district: null,
+  modes: [],
   partnerConditions: [],
 };
 
@@ -60,6 +64,7 @@ function formFromProfile(profile: Profile | null | undefined): FormState {
     style: profile.style,
     slots: profile.slots,
     district: profile.district,
+    modes: profile.modes,
     partnerConditions: profile.partnerConditions,
   };
 }
@@ -107,6 +112,7 @@ export default function ProfileForm() {
     form.style === null ? "성향" : null,
     form.slots.length === 0 ? "가능 시간" : null,
     form.district === null ? "희망 지역" : null,
+    form.modes.length === 0 ? "진행 방식" : null,
   ].filter((name): name is string => name !== null);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -123,6 +129,7 @@ export default function ProfileForm() {
       style,
       slots: form.slots,
       district,
+      modes: form.modes,
       partnerConditions: form.partnerConditions,
       // 처음 눌렀을 때의 시각을 그대로 유지한다.
       profileCompletedAt: saved?.profileCompletedAt ?? new Date().toISOString(),
@@ -177,7 +184,14 @@ export default function ProfileForm() {
         onChange={(district) => update({ district })}
       />
       <MultiChoice
-        legend="⑦ 파트너 조건 (선택)"
+        legend="⑦ 진행 방식"
+        hint="온라인을 고르면 다른 구에 사는 사람과도 매칭될 수 있어요. 둘 다 골라도 돼요."
+        options={MODES}
+        values={form.modes}
+        onChange={(modes) => update({ modes })}
+      />
+      <MultiChoice
+        legend="⑧ 파트너 조건 (선택)"
         hint="고르지 않아도 돼요."
         options={PARTNER_CONDITIONS}
         values={form.partnerConditions}
