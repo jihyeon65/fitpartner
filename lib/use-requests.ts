@@ -2,19 +2,27 @@
 // Plan: 작업 14번 "매칭 요청"
 import { useMemo, useSyncExternalStore } from "react";
 import type { UserRecord } from "./metrics";
-import type { MatchRequest, Schedule } from "./options";
+import type { Group, GroupJoin, MatchRequest, Schedule } from "./options";
 import {
+  getAllGroupJoinsSnapshot,
   getAllUsersSnapshot,
+  getGroupJoinsJson,
+  getGroupsJson,
   getProgramSeenJson,
   getRequestsJson,
   getScheduleDraftJson,
   getSchedulesJson,
+  parseAllGroupJoins,
   parseAllUsers,
+  parseGroupJoins,
+  parseGroups,
   parseProgramSeen,
   parseRequests,
   parseScheduleDraft,
   parseSchedules,
   subscribeAllUsers,
+  subscribeGroupJoins,
+  subscribeGroups,
   subscribeProgramSeen,
   subscribeRequests,
   subscribeScheduleDraft,
@@ -59,6 +67,28 @@ export function useScheduleDraft(nickname: string | null): ScheduleDraft | null 
 export function useAllUsers(): UserRecord[] | undefined {
   const snapshot = useSyncExternalStore(subscribeAllUsers, getAllUsersSnapshot, () => undefined);
   return useMemo(() => (snapshot === undefined ? undefined : parseAllUsers(snapshot)), [snapshot]);
+}
+
+/** 사용자가 만든 모임 전체. undefined는 아직 브라우저 저장소를 읽기 전이라는 뜻이다. (모든 닉네임이 함께 본다) */
+export function useUserGroups(): Group[] | undefined {
+  const json = useSyncExternalStore(subscribeGroups, getGroupsJson, () => undefined);
+  return useMemo(() => (json === undefined ? undefined : parseGroups(json)), [json]);
+}
+
+/** 이 닉네임의 모임 참여 신청. undefined는 아직 저장소를 읽기 전이라는 뜻이다. */
+export function useMyGroupJoins(nickname: string | null): GroupJoin[] | undefined {
+  const json = useSyncExternalStore(
+    subscribeGroupJoins,
+    () => (nickname === null ? null : getGroupJoinsJson(nickname)),
+    () => undefined,
+  );
+  return useMemo(() => (json === undefined ? undefined : parseGroupJoins(json)), [json]);
+}
+
+/** 이 브라우저의 모든 닉네임의 모임 참여 신청 (정원 계산용). undefined는 읽기 전이라는 뜻이다. */
+export function useAllGroupJoins(): GroupJoin[] | undefined {
+  const snapshot = useSyncExternalStore(subscribeGroupJoins, getAllGroupJoinsSnapshot, () => undefined);
+  return useMemo(() => (snapshot === undefined ? undefined : parseAllGroupJoins(snapshot)), [snapshot]);
 }
 
 /** AI 프로그램을 화면에서 본 후보의 id 목록. undefined는 아직 브라우저 저장소를 읽기 전이라는 뜻이다. */

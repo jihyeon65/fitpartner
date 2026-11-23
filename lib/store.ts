@@ -16,12 +16,15 @@ import {
   SLOTS,
   SPORTS,
   STYLES,
+  type Group,
+  type GroupJoin,
   type MatchRequest,
   type Profile,
   type Schedule,
   type SchedulePlace,
   type Slot,
 } from "./options";
+import { sanitizeGroupJoins, sanitizeGroups } from "./groups";
 import type { UserRecord } from "./metrics";
 
 /** 현재 닉네임을 저장하는 키 */
@@ -567,4 +570,140 @@ export function parseAllUsers(snapshot: string | null): UserRecord[] {
 export function subscribeAllUsers(callback: () => void): () => void {
   const stops = [subscribeProfile(callback), subscribeRequests(callback), subscribeSchedules(callback)];
   return () => stops.forEach((stop) => stop());
+}
+
+// ───────────── 모임과 모임 참여 신청 (v0.8, 작업 25번) ─────────────
+// 내가 만든 모임은 이 브라우저의 모든 닉네임이 함께 보도록 한 곳에 두고, 참여 신청은 닉네임별로 저장한다.
+
+const GROUPS_KEY = "fitpartner:groups";
+const GROUPS_EVENT = "fitpartner:groups-changed";
+
+/** 저장된 모임 원문(JSON 글자). 없거나 저장소를 쓸 수 없으면 null */
+export function getGroupsJson(): string | null {
+  const storage = getStorage();
+  if (!storage) return null;
+  try {
+    return storage.getItem(GROUPS_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** 저장된 글자를 모임 목록으로 바꾼다. (저장소 값은 직접 고칠 수 있으므로 올바른 모임만 남긴다) */
+export function parseGroups(json: string | null): Group[] {
+  if (json === null) return [];
+  try {
+    return sanitizeGroups(JSON.parse(json));
+  } catch {
+    return [];
+  }
+}
+
+/** 모임 목록 전체를 저장한다. 성공하면 true */
+export function saveGroups(groups: Group[]): boolean {
+  const storage = getStorage();
+  if (!storage) return false;
+  try {
+    storage.setItem(GROUPS_KEY, JSON.stringify(groups));
+  } catch {
+    return false;
+  }
+  window.dispatchEvent(new Event(GROUPS_EVENT));
+  return true;
+}
+
+/** 모임이 바뀌면 callback을 부른다. */
+export function subscribeGroups(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key === GROUPS_KEY) callback();
+  };
+  window.addEventListener(GROUPS_EVENT, callback);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(GROUPS_EVENT, callback);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+const GROUP_JOINS_EVENT = "fitpartner:group-joins-changed";
+
+function groupJoinsKey(nickname: string): string {
+  return `fitpartner:user:${encodeURIComponent(nickname)}:group-joins`;
+}
+
+/** 이 닉네임의 참여 신청 원문(JSON 글자). 없거나 저장소를 쓸 수 없으면 null */
+export function getGroupJoinsJson(nickname: string): string | null {
+  const storage = getStorage();
+  if (!storage) return null;
+  try {
+    return storage.getItem(groupJoinsKey(nickname));
+  } catch {
+    return null;
+  }
+}
+
+/** 저장된 글자를 참여 신청 목록으로 바꾼다. */
+export function parseGroupJoins(json: string | null): GroupJoin[] {
+  if (json === null) return [];
+  try {
+    return sanitizeGroupJoins(JSON.parse(json));
+  } catch {
+    return [];
+  }
+}
+
+/** 이 닉네임의 참여 신청 목록 전체를 저장한다. 성공하면 true */
+export function saveGroupJoins(nickname: string, joins: GroupJoin[]): boolean {
+  const storage = getStorage();
+  if (!storage) return false;
+  try {
+    storage.setItem(groupJoinsKey(nickname), JSON.stringify(joins));
+  } catch {
+    return false;
+  }
+  window.dispatchEvent(new Event(GROUP_JOINS_EVENT));
+  return true;
+}
+
+/** 이 브라우저의 모든 닉네임의 참여 신청 원문을 하나의 글자로 모은다. (정원 계산용, 닉네임 순서로 정렬) */
+export function getAllGroupJoinsSnapshot(): string | null {
+  const storage = getStorage();
+  if (!storage) return null;
+  try {
+    const raws: string[] = [];
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i);
+      if (key && /^fitpartner:user:[^:]+:group-joins$/.test(key)) raws.push(`${key}\u0000${storage.getItem(key) ?? ""}`);
+    }
+    return JSON.stringify(raws.sort());
+  } catch {
+    return null;
+  }
+}
+
+/** 모아 둔 글자를 참여 신청 목록으로 바꾼다. */
+export function parseAllGroupJoins(snapshot: string | null): GroupJoin[] {
+  if (snapshot === null) return [];
+  try {
+    const raws: unknown = JSON.parse(snapshot);
+    if (!Array.isArray(raws)) return [];
+    return raws.flatMap((raw) => (typeof raw === "string" ? parseGroupJoins(raw.split("\u0000")[1] ?? null) : []));
+  } catch {
+    return [];
+  }
+}
+
+/** 참여 신청이 바뀌면 callback을 부른다. */
+export function subscribeGroupJoins(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key.endsWith(":group-joins")) callback();
+  };
+  window.addEventListener(GROUP_JOINS_EVENT, callback);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(GROUP_JOINS_EVENT, callback);
+    window.removeEventListener("storage", onStorage);
+  };
 }

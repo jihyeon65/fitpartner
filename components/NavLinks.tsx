@@ -1,6 +1,6 @@
 "use client";
 
-// Design Ref: §3 화면 구성 — 헤더 메뉴: 프로필 / 추천 / 장소 / 매칭 / 일정 / 지표
+// Design Ref: §3 화면 구성 — 헤더 메뉴: 프로필 / 추천 / 모임 / 장소 / 매칭 / 일정 / 지표 (모임은 v0.8에서 추가, DESIGN 12.5)
 // 현재 보고 있는 메뉴를 표시하려면 주소(pathname)를 읽어야 해서 이 부품만 클라이언트 컴포넌트로 둔다.
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 const MENU = [
   { href: "/profile", label: "프로필" },
   { href: "/recommend", label: "추천" },
+  { href: "/groups", label: "모임" },
   { href: "/places", label: "장소" },
   { href: "/matches", label: "매칭" },
   { href: "/schedule", label: "일정" },

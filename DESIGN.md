@@ -641,7 +641,7 @@ interface GroupJoin {          // 내가 낸 참여 신청 (닉네임별 저장)
 - 기존 `POST /api/recommend`: 필수 조건에 진행 방식을 반영하고 응답 후보에 `meetMode`를 더한다. 프로필 검사에 `modes`(1개 이상, 선택지 안의 값)를 더한다. 비어 있으면 400 "진행 방식을 선택해 주세요".
 - 기존 `POST /api/analyze`: 입력에 진행 방식을 더한다.
 - 기존 `GET /api/places`: `sport`가 맨몸운동이면 400 (시설 지도는 세 종목만).
-- 새 `POST /api/groups/recommend`: `{ me, myGroups }`(내가 만든 모임 목록, 브라우저 저장소에서 보냄)를 받아 가상 모임과 합쳐 거르기·점수 → 최대 5개 `{ group, score, matchedConditions, isReference, seatsLeft }` 반환. 요청의 모임 값은 모두 선택지와 맞는지 검사하고 맞지 않는 모임은 버린다.
+- 새 `POST /api/groups/recommend`: `{ me, groups, joins }`(`groups`는 이 브라우저 사용자가 만든 모임 목록, `joins`는 모든 닉네임의 모임 참여 신청 — 둘 다 브라우저 저장소에서 보내고 정원 계산에 쓴다)를 받아 가상 모임과 합쳐 거르기·점수 → 최대 5개 `{ group, score, matchedConditions, isReference, seatsLeft }` 반환. 요청의 모임 값은 모두 선택지와 맞는지 검사하고 맞지 않는 모임은 버린다.
 
 ### 12.7 비범위 (확장에서도 만들지 않는 것)
 

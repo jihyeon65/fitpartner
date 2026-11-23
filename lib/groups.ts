@@ -265,6 +265,38 @@ export function createGroup(input: GroupInput, host: Pick<Profile, "id" | "nickn
   };
 }
 
+/** 바깥에서 온 값(브라우저 저장소·요청 본문)에서 올바른 참여 신청만 골라낸다. 모양이 맞지 않는 항목은 버린다. */
+export function sanitizeGroupJoins(value: unknown): GroupJoin[] {
+  if (!Array.isArray(value)) return [];
+  const result: GroupJoin[] = [];
+  for (const item of value) {
+    if (typeof item !== "object" || item === null) continue;
+    const j = item as Record<string, unknown>;
+    if (
+      typeof j.id !== "string" ||
+      typeof j.groupId !== "string" ||
+      typeof j.fromNickname !== "string" ||
+      !isOneOf(["대기", "참여", "만료"] as const, j.status) ||
+      typeof j.createdAt !== "string" ||
+      typeof j.expiresAt !== "string" ||
+      Number.isNaN(Date.parse(j.createdAt)) ||
+      Number.isNaN(Date.parse(j.expiresAt))
+    ) {
+      continue;
+    }
+    result.push({
+      id: j.id,
+      groupId: j.groupId,
+      fromNickname: j.fromNickname,
+      status: j.status,
+      createdAt: j.createdAt,
+      expiresAt: j.expiresAt,
+      done: typeof j.done === "boolean" ? j.done : undefined,
+    });
+  }
+  return result;
+}
+
 /** 바깥에서 온 값(브라우저 저장소·요청 본문)에서 올바른 모임만 골라낸다. 모양이 맞지 않는 항목은 버린다. */
 export function sanitizeGroups(value: unknown): Group[] {
   if (!Array.isArray(value)) return [];
