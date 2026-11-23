@@ -29,6 +29,9 @@ export const SLOTS = ["평일 아침", "평일 저녁", "주말 오전", "주말
 /** 희망 지역 (대전광역시의 3개 구로 한정) */
 export const DISTRICTS = ["대덕구", "중구", "유성구"] as const;
 
+/** 모임 정원(호스트 포함) 선택지 (v0.8, DESIGN 12.3) */
+export const GROUP_CAPACITIES = [3, 4, 5, 6] as const;
+
 /** 파트너 조건 (선택 사항) */
 export const PARTNER_CONDITIONS = ["비슷한 실력만 보기", "같은 운동 목적만 보기"] as const;
 
@@ -37,6 +40,7 @@ export const PARTNER_CONDITIONS = ["비슷한 실력만 보기", "같은 운동 
 export type Sport = (typeof SPORTS)[number];
 export type FacilitySport = (typeof FACILITY_SPORTS)[number];
 export type Mode = (typeof MODES)[number];
+export type GroupCapacity = (typeof GROUP_CAPACITIES)[number];
 export type Level = (typeof LEVELS)[number];
 export type Goal = (typeof GOALS)[number];
 export type Style = (typeof STYLES)[number];
@@ -120,4 +124,43 @@ export interface Schedule {
   /** 완료 체크 시각 (2주 안 완료 계산용) */
   doneAt?: string;
   place?: SchedulePlace;
+}
+
+// ───────────── 1대다수 모임 (v0.8, DESIGN 12.3, 작업 24번) ─────────────
+
+/** 모임. 제목은 자유 입력이 아니라 "{종목} {시간대} {진행 방식} 모임"으로 자동으로 만든다. */
+export interface Group {
+  id: string;
+  /** 모임을 연 사람의 프로필 id (가상 프로필 또는 "user:닉네임") */
+  hostId: string;
+  hostNickname: string;
+  sport: Sport;
+  /** 오프라인이면 district가 의미 있다. 온라인이면 구는 참고용이다. */
+  mode: Mode;
+  district: District;
+  /** 모임 시간대 (하나) */
+  slot: Slot;
+  /** 모임 날짜 YYYY-MM-DD */
+  date: string;
+  /** 모임이 맞는 실력 단계 */
+  level: Level;
+  goal: Goal;
+  style: Style;
+  /** 호스트를 포함한 정원 */
+  capacity: GroupCapacity;
+  createdAt: string;
+  /** 호스트를 뺀 가상 참여자 프로필 id. (내가 만든 모임은 시각에 따라 자동으로 늘어난다 — lib/groups.ts) */
+  members: string[];
+}
+
+/** 내가 낸 모임 참여 신청 */
+export interface GroupJoin {
+  id: string;
+  groupId: string;
+  fromNickname: string;
+  status: "대기" | "참여" | "만료";
+  createdAt: string;
+  expiresAt: string;
+  /** 모임 일정의 "운동 완료" (내 쪽) */
+  done?: boolean;
 }
