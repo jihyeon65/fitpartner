@@ -25,6 +25,7 @@ import { useNickname } from "@/lib/use-nickname";
 import { useProfile } from "@/lib/use-profile";
 import { useNow, useRequests, useScheduleDraft, useSchedules } from "@/lib/use-requests";
 import { SingleChoice } from "./ChoiceGroup";
+import GroupScheduleSection from "./GroupScheduleSection";
 
 export default function ScheduleView() {
   const nickname = useNickname();
@@ -50,7 +51,12 @@ export default function ScheduleView() {
     .filter((r) => currentStatus(r, now) === "수락")
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   if (accepted.length === 0) {
-    return <Guide text="수락된 매칭이 아직 없어요. 매칭이 수락되면 여기서 일정을 잡을 수 있어요." href="/matches" button="매칭 보러 가기" />;
+    return (
+      <div className="flex flex-col gap-6">
+        <Guide text="수락된 매칭이 아직 없어요. 매칭이 수락되면 여기서 일정을 잡을 수 있어요." href="/matches" button="매칭 보러 가기" />
+        <GroupScheduleSection me={profile} />
+      </div>
+    );
   }
 
   const selectedId = [pickedId, paramMatch, draft?.matchId].find((id) => id && accepted.some((r) => r.id === id)) ?? null;
@@ -97,6 +103,8 @@ export default function ScheduleView() {
       ) : (
         <p className="text-zinc-600 dark:text-zinc-400">위에서 매칭을 고르면 가능한 시간과 일정을 볼 수 있어요.</p>
       )}
+
+      <GroupScheduleSection me={profile} />
     </div>
   );
 }

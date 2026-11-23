@@ -320,9 +320,68 @@ export function sanitizeGroups(value: unknown): Group[] {
       0,
     );
     if (!made.ok) continue;
-    result.push({ ...made.group, id: g.id, createdAt: g.createdAt, members: [] });
+    result.push({
+      ...made.group,
+      id: g.id,
+      createdAt: g.createdAt,
+      members: [],
+      ...(g.hostDone === true ? { hostDone: true } : {}),
+    });
   }
   return result;
+}
+
+// ───────────── 모임 일정 (작업 26번) ─────────────
+
+/** 일정 화면에 보여줄 모임 한 건 (내가 만든 모임 또는 "참여"가 된 모임) */
+export interface GroupScheduleItem {
+  role: "호스트" | "참여자";
+  group: Group;
+  /** 참여자일 때만 있다: 완료 체크를 저장하는 신청 */
+  join?: GroupJoin;
+  /** 내 운동 완료 체크 */
+  done: boolean;
+}
+
+/**
+ * 내 모임 일정: 내가 만든 모임 + 참여가 확정된 모임. 날짜가 빠른 순서로 정렬한다.
+ * 만료·대기 신청과, 모임을 찾지 못하는 신청은 넣지 않는다.
+ */
+export function myGroupSchedule(
+  me: Pick<Profile, "id" | "nickname">,
+  groups: readonly Group[],
+  myJoins: readonly GroupJoin[],
+  nowMs: number,
+): GroupScheduleItem[] {
+  const items: GroupScheduleItem[] = [];
+  for (const group of groups) {
+    if (isHostedBy(group, me)) items.push({ role: "호스트", group, done: group.hostDone === true });
+  }
+  for (const join of myJoins) {
+    const group = groups.find((g) => g.id === join.groupId);
+    if (!group || isHostedBy(group, me)) continue;
+    if (joinStatus(join, group, nowMs) !== "참여") continue;
+    items.push({ role: "참여자", group, join, done: join.done === true });
+  }
+  return items.sort((a, b) => a.group.date.localeCompare(b.group.date) || a.group.createdAt.localeCompare(b.group.createdAt));
+}
+
+/** 참여 신청의 "운동 완료"를 바꾼 새 목록 */
+export function setJoinDone(joins: readonly GroupJoin[], joinId: string, done: boolean): GroupJoin[] {
+  return joins.map((j) => (j.id === joinId ? { ...j, done } : j));
+}
+
+/** 내가 만든 모임의 호스트 "운동 완료"를 바꾼 새 목록 */
+export function setHostDone(groups: readonly Group[], groupId: string, done: boolean): Group[] {
+  return groups.map((g) => (g.id === groupId ? { ...g, hostDone: done } : g));
+}
+
+/** 이 브라우저에서 "참여"가 확정된 모임 신청 수 (지표 화면의 참고 숫자. 6개 지표에는 넣지 않는다) */
+export function confirmedJoinTotal(joins: readonly GroupJoin[], groups: readonly Group[], nowMs: number): number {
+  return joins.filter((j) => {
+    const group = groups.find((g) => g.id === j.groupId);
+    return group !== undefined && joinStatus(j, group, nowMs) === "참여";
+  }).length;
 }
 
 // ───────────── 모임 추천 ─────────────
