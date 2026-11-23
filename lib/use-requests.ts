@@ -1,14 +1,21 @@
 // Design Ref: §3.4 매칭 — 화면에서 이 닉네임의 보낸 요청 목록을 읽는 훅, 시간이 흐르면 상태가 바뀌도록 현재 시각도 준다.
 // Plan: 작업 14번 "매칭 요청"
 import { useMemo, useSyncExternalStore } from "react";
-import type { MatchRequest } from "./options";
+import type { MatchRequest, Schedule } from "./options";
 import {
   getProgramSeenJson,
   getRequestsJson,
+  getScheduleDraftJson,
+  getSchedulesJson,
   parseProgramSeen,
   parseRequests,
+  parseScheduleDraft,
+  parseSchedules,
   subscribeProgramSeen,
   subscribeRequests,
+  subscribeScheduleDraft,
+  subscribeSchedules,
+  type ScheduleDraft,
 } from "./store";
 
 /**
@@ -22,6 +29,26 @@ export function useRequests(nickname: string | null): MatchRequest[] | undefined
     () => undefined,
   );
   return useMemo(() => (json === undefined ? undefined : parseRequests(json)), [json]);
+}
+
+/** 이 닉네임의 일정 목록. undefined는 아직 브라우저 저장소를 읽기 전이라는 뜻이다. */
+export function useSchedules(nickname: string | null): Schedule[] | undefined {
+  const json = useSyncExternalStore(
+    subscribeSchedules,
+    () => (nickname === null ? null : getSchedulesJson(nickname)),
+    () => undefined,
+  );
+  return useMemo(() => (json === undefined ? undefined : parseSchedules(json)), [json]);
+}
+
+/** 장소 화면을 다녀오는 동안 보관한 일정 입력 임시 값. (undefined는 읽기 전, null은 없음) */
+export function useScheduleDraft(nickname: string | null): ScheduleDraft | null | undefined {
+  const json = useSyncExternalStore(
+    subscribeScheduleDraft,
+    () => (nickname === null ? null : getScheduleDraftJson(nickname)),
+    () => undefined,
+  );
+  return useMemo(() => (json === undefined ? undefined : parseScheduleDraft(json)), [json]);
 }
 
 /** AI 프로그램을 화면에서 본 후보의 id 목록. undefined는 아직 브라우저 저장소를 읽기 전이라는 뜻이다. */

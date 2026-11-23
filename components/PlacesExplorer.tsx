@@ -4,11 +4,14 @@
 //   조건에 맞는 시설이 없으면 "이 조건의 시설을 찾지 못했어요", 불러오기에 실패하면 "시설 정보를 불러오지 못했어요…"
 //   (다른 기능은 정상). 지도 그림 실패 시 "지도를 불러오지 못했어요"만 보이고 목록은 그대로. "시설 정보는 샘플 데이터입니다" 안내.
 // Design Ref: §4.4 시설 검색 흐름 — 브라우저 → /api/places?sport=…&district=…
-// Plan: 작업 17번 "지도·시설 검색 화면(N2)" — "일정 장소로 선택" 모드는 작업 18번에서 이어서 만든다.
+// Design Ref: §3.5 — 메뉴의 "장소"로 열면 보기만 가능하고, 일정 화면의 "장소 고르기"로 열면(?pick=매칭) 선택 모드가 되어 "일정 장소로 선택" 버튼이 보인다.
+// Plan: 작업 17번 "지도·시설 검색 화면(N2)", 작업 18번 "일정 관리"(일정 장소로 선택)
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DISTRICTS, SPORTS, type District, type Place, type Sport } from "@/lib/options";
+import { getScheduleDraftJson, parseScheduleDraft, saveScheduleDraft } from "@/lib/store";
 import { useNickname } from "@/lib/use-nickname";
 import { useProfile } from "@/lib/use-profile";
 import { SingleChoice } from "./ChoiceGroup";
@@ -23,6 +26,8 @@ const PlacesMap = dynamic(() => import("./PlacesMap"), {
 type Loaded = { key: string; places: Place[] } | { key: string; error: string };
 
 export default function PlacesExplorer() {
+  const router = useRouter();
+  const pickMatchId = useSearchParams().get("pick");
   const nickname = useNickname();
   const profile = useProfile(nickname ?? null);
 
@@ -57,6 +62,15 @@ export default function PlacesExplorer() {
   const current = loaded?.key === key ? loaded : null;
   const places = current && "places" in current ? current.places : [];
   const selected = places.find((place) => place.id === selectedId);
+
+  /** 선택 모드: 고른 시설을 임시 값에 담아 두고 일정 화면으로 돌아간다. */
+  function pickForSchedule(place: Place) {
+    if (!pickMatchId || !nickname) return;
+    const before = parseScheduleDraft(getScheduleDraftJson(nickname));
+    const base = before?.matchId === pickMatchId ? before : { matchId: pickMatchId };
+    saveScheduleDraft(nickname, { ...base, place: { id: place.id, name: place.name, address: place.address } });
+    router.push(`/schedule?match=${encodeURIComponent(pickMatchId)}`);
+  }
 
   function changeSport(next: Sport) {
     setPickedSport(next);
@@ -137,6 +151,15 @@ export default function PlacesExplorer() {
                 <Link href="/recommend" className="mt-2 inline-block text-emerald-700 hover:underline dark:text-emerald-400">
                   추천 파트너 보러 가기
                 </Link>
+                {pickMatchId ? (
+                  <button
+                    type="button"
+                    onClick={() => pickForSchedule(selected)}
+                    className="mt-3 block rounded-md bg-emerald-600 px-3 py-1.5 font-medium text-white hover:bg-emerald-700"
+                  >
+                    일정 장소로 선택
+                  </button>
+                ) : null}
               </div>
             ) : (
               <p className="text-sm text-zinc-500 dark:text-zinc-400">목록이나 지도의 마커를 누르면 시설 정보를 보여줘요.</p>

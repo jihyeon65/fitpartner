@@ -1,7 +1,7 @@
 // Design Ref: §5 저장 위치 — 내 프로필·요청·일정·지표는 브라우저 저장소에 닉네임별로 저장한다.
 // Plan: 작업 4번 "닉네임만 입력하는 실습용 간단 로그인"에서 이 파일을 만들었고,
 //   작업 5번 "프로필 입력 화면"에서 프로필 저장을 추가했다.
-//   작업 14번 "매칭 요청"에서 요청 저장을 추가했고, 일정 저장은 작업 18번에서 이어서 추가한다.
+//   작업 14번 "매칭 요청"에서 요청 저장을 추가했고, 작업 18번 "일정 관리"에서 일정 저장을 추가했다.
 //
 // 브라우저 저장소(localStorage)는 사생활 보호 모드나 저장소 차단 상황에서 오류를 낼 수 있어서,
 // 모든 읽기·쓰기를 try/catch로 감싸고 실패해도 화면이 깨지지 않게 한다.
@@ -17,6 +17,9 @@ import {
   STYLES,
   type MatchRequest,
   type Profile,
+  type Schedule,
+  type SchedulePlace,
+  type Slot,
 } from "./options";
 
 /** 현재 닉네임을 저장하는 키 */
@@ -336,6 +339,173 @@ export function subscribeProgramSeen(callback: () => void): () => void {
   window.addEventListener("storage", onStorage);
   return () => {
     window.removeEventListener(PROGRAM_SEEN_EVENT, callback);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+// ───────────── 일정 (닉네임별로 따로 저장) ─────────────
+// Plan: 작업 18번 "일정 관리"
+
+const SCHEDULES_EVENT = "fitpartner:schedules-changed";
+
+function schedulesKey(nickname: string): string {
+  return `fitpartner:user:${encodeURIComponent(nickname)}:schedules`;
+}
+
+/** 저장된 일정 원문(JSON 글자). 없거나 저장소를 쓸 수 없으면 null */
+export function getSchedulesJson(nickname: string): string | null {
+  const storage = getStorage();
+  if (!storage) return null;
+  try {
+    return storage.getItem(schedulesKey(nickname));
+  } catch {
+    return null;
+  }
+}
+
+function parsePlace(value: unknown): SchedulePlace | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const p = value as Record<string, unknown>;
+  if (typeof p.id !== "string" || typeof p.name !== "string" || typeof p.address !== "string") return undefined;
+  return { id: p.id, name: p.name, address: p.address };
+}
+
+/** 저장된 글자를 일정 목록으로 바꾼다. 모양이 맞지 않는 항목은 버린다. */
+export function parseSchedules(json: string | null): Schedule[] {
+  if (json === null) return [];
+  try {
+    const data: unknown = JSON.parse(json);
+    if (!Array.isArray(data)) return [];
+    const result: Schedule[] = [];
+    for (const item of data) {
+      if (typeof item !== "object" || item === null) continue;
+      const s = item as Record<string, unknown>;
+      if (
+        typeof s.matchId !== "string" ||
+        typeof s.ownerNickname !== "string" ||
+        !isOneOf(SLOTS, s.slot) ||
+        typeof s.date !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(s.date) ||
+        typeof s.myDone !== "boolean" ||
+        typeof s.partnerDone !== "boolean"
+      ) {
+        continue;
+      }
+      result.push({
+        matchId: s.matchId,
+        ownerNickname: s.ownerNickname,
+        slot: s.slot,
+        date: s.date,
+        myDone: s.myDone,
+        partnerDone: s.partnerDone,
+        doneAt: typeof s.doneAt === "string" && !Number.isNaN(Date.parse(s.doneAt)) ? s.doneAt : undefined,
+        place: parsePlace(s.place),
+      });
+    }
+    return result;
+  } catch {
+    return [];
+  }
+}
+
+/** 이 닉네임의 일정 목록 전체를 저장한다. 성공하면 true */
+export function saveSchedules(nickname: string, schedules: Schedule[]): boolean {
+  const storage = getStorage();
+  if (!storage) return false;
+  try {
+    storage.setItem(schedulesKey(nickname), JSON.stringify(schedules));
+  } catch {
+    return false;
+  }
+  window.dispatchEvent(new Event(SCHEDULES_EVENT));
+  return true;
+}
+
+/** 일정이 바뀌면 callback을 부른다. (useSyncExternalStore에 넘기는 구독 함수) */
+export function subscribeSchedules(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key.endsWith(":schedules")) callback();
+  };
+  window.addEventListener(SCHEDULES_EVENT, callback);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(SCHEDULES_EVENT, callback);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+// ───────────── 일정 입력 임시 값 (장소 화면을 다녀오는 동안 보관) ─────────────
+// Design Ref: §4.4 — 일정 화면에서 선택 모드로 갈 때 어느 매칭인지(matchId)와 고른 시설은 브라우저 저장소의 임시 값으로 넘긴다.
+
+/** 일정을 등록하던 중 장소 화면에 다녀올 때 남겨 두는 값 */
+export interface ScheduleDraft {
+  matchId: string;
+  slot?: Slot;
+  date?: string;
+  place?: SchedulePlace;
+}
+
+const DRAFT_EVENT = "fitpartner:schedule-draft-changed";
+
+function draftKey(nickname: string): string {
+  return `fitpartner:user:${encodeURIComponent(nickname)}:schedule-draft`;
+}
+
+/** 저장된 임시 값 원문(JSON 글자). 없거나 저장소를 쓸 수 없으면 null */
+export function getScheduleDraftJson(nickname: string): string | null {
+  const storage = getStorage();
+  if (!storage) return null;
+  try {
+    return storage.getItem(draftKey(nickname));
+  } catch {
+    return null;
+  }
+}
+
+/** 저장된 글자를 임시 값으로 바꾼다. 모양이 맞지 않으면 null */
+export function parseScheduleDraft(json: string | null): ScheduleDraft | null {
+  if (json === null) return null;
+  try {
+    const d: unknown = JSON.parse(json);
+    if (typeof d !== "object" || d === null) return null;
+    const r = d as Record<string, unknown>;
+    if (typeof r.matchId !== "string") return null;
+    return {
+      matchId: r.matchId,
+      slot: isOneOf(SLOTS, r.slot) ? r.slot : undefined,
+      date: typeof r.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : undefined,
+      place: parsePlace(r.place),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** 임시 값을 저장하거나(null이면 지운다) 한다. */
+export function saveScheduleDraft(nickname: string, draft: ScheduleDraft | null): boolean {
+  const storage = getStorage();
+  if (!storage) return false;
+  try {
+    if (draft === null) storage.removeItem(draftKey(nickname));
+    else storage.setItem(draftKey(nickname), JSON.stringify(draft));
+  } catch {
+    return false;
+  }
+  window.dispatchEvent(new Event(DRAFT_EVENT));
+  return true;
+}
+
+/** 임시 값이 바뀌면 callback을 부른다. */
+export function subscribeScheduleDraft(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key.endsWith(":schedule-draft")) callback();
+  };
+  window.addEventListener(DRAFT_EVENT, callback);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(DRAFT_EVENT, callback);
     window.removeEventListener("storage", onStorage);
   };
 }
