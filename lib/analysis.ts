@@ -3,12 +3,12 @@
 //   건강 조언 금지, 참고 안내 문구는 코드가 붙인다.
 // PRD 5번 M2 규칙 5~8 — 연습 방식·프로그램은 종목·실력·목적에만 근거, 1회 30~60분·주 2~3회, 초보면 낮은 강도,
 //   실력 차이 2단계 이상이면 연습 방식 필수, 효과는 "기대할 수 있다"로 표현하고 수치는 약속하지 않는다.
-// Plan: 작업 11번 "AI 성향 분석·추천 이유", 작업 12번 "AI 연습 방식·운동 프로그램 추천"
+// Plan: 작업 11번 "AI 성향 분석·추천 이유", 작업 12번 "AI 연습 방식·운동 프로그램 추천", 작업 22번(진행 방식·만나는 방식을 AI 입력에 포함)
 //
 // 이 파일은 AI를 직접 부르지 않는다. (호출은 lib/ai.ts) 프롬프트를 만들고, 받은 글자를 검사하는 계산만 한다.
 import { z } from "zod";
 import type { Profile } from "./options";
-import { overlappingSlots } from "./filter";
+import { matchMeetMode, overlappingSlots } from "./filter";
 import { judgeSkillGap } from "./skill-gap";
 
 /** 모든 분석 결과에 코드가 항상 붙이는 참고 안내 문구 (AI는 이 문구를 쓰지 않는다) */
@@ -21,7 +21,7 @@ export const INSUFFICIENT_MESSAGE = "정보가 부족해 분석이 어렵다";
 export const HEALTH_CONSULT_MESSAGE = "건강 관련 내용은 전문가와 상담하세요";
 
 /** AI가 "근거로 쓴 입력 항목"으로 말할 수 있는 이름 */
-export const BASIS_FIELDS = ["종목", "실력", "목적", "성향", "가능 시간", "희망 지역"] as const;
+export const BASIS_FIELDS = ["종목", "실력", "목적", "성향", "가능 시간", "희망 지역", "진행 방식"] as const;
 export type BasisField = (typeof BASIS_FIELDS)[number];
 
 const MAX_ITEMS = 3;
@@ -34,6 +34,8 @@ const HEALTH_WORDS = /진단|치료|재활|식단|처방|부상|통증|질병|�
 export interface AnalysisInput {
   나: PublicFields;
   상대: PublicFields;
+  /** 두 사람이 만나는 방식 (오프라인이면 같은 구, 온라인이면 구 상관없음) */
+  "만나는 방식": string;
 }
 interface PublicFields {
   종목: string;
@@ -42,6 +44,7 @@ interface PublicFields {
   성향: string;
   "가능 시간": string[];
   "희망 지역": string;
+  "진행 방식": string[];
 }
 
 function publicFields(p: Profile): PublicFields {
@@ -52,12 +55,17 @@ function publicFields(p: Profile): PublicFields {
     성향: p.style,
     "가능 시간": p.slots,
     "희망 지역": p.district,
+    "진행 방식": p.modes,
   };
 }
 
 /** 두 사람의 코드 값만 모아 AI에게 보낼 내용을 만든다. */
 export function buildAnalysisInput(me: Profile, candidate: Profile): AnalysisInput {
-  return { 나: publicFields(me), 상대: publicFields(candidate) };
+  return {
+    나: publicFields(me),
+    상대: publicFields(candidate),
+    "만나는 방식": matchMeetMode(me, candidate) ?? "오프라인",
+  };
 }
 
 /** 프로그램 한 번 운동 시간(분)과 주당 횟수의 허용 범위 */
@@ -69,7 +77,7 @@ export const LOW_INTENSITY_LABEL = "낮은 강도로 시작";
 const BEGINNER_MAX_LEVEL = 2;
 
 /** 연습 방식·프로그램이 근거로 쓸 수 있는 입력 항목 (PRD M2 규칙 5) */
-const PRACTICE_BASIS: ReadonlySet<BasisField> = new Set<BasisField>(["종목", "실력", "목적"]);
+const PRACTICE_BASIS: ReadonlySet<BasisField> = new Set<BasisField>(["종목", "실력", "목적", "진행 방식"]);
 
 /** 효과 문장에서 지우는 수치 약속 (예: 3kg 감량, 20% 향상) */
 const NUMERIC_PROMISE = /\d+\s*(kg|㎏|킬로|%|퍼센트|cm|kcal|칼로리|배)|감량|체지방률|근육량/i;
@@ -89,9 +97,10 @@ export const ANALYSIS_INSTRUCTIONS = `너는 운동 파트너 매칭 서비스�
 - 공통점과 차이점을 반드시 나눠서 각각 1~${MAX_ITEMS}개 써. 근거가 부족하면 억지로 만들지 말고 해당 목록을 비워.
 - 사람을 단정하지 말고 "~할 수 있어요", "~한 편이에요"처럼 부드럽게 써. 한 문장은 ${MAX_TEXT_LENGTH}자 이내.
 - 질병·부상·통증의 진단, 치료, 재활, 식단에 대한 말은 하지 마.
+- "만나는 방식"이 온라인이면 시설이 아니라 집이나 각자 있는 곳에서 화상·메신저로 함께 할 수 있는 운동으로 연습 방식과 프로그램을 써. 오프라인이면 같은 구에서 만나는 것을 전제로 해.
 - 두 사람의 실력 차이가 2단계 이상이면 practice(연습 방식)에 서로에게 맞는 방법을 1개 이상 써. (예: 한쪽은 기본기 반복, 다른 쪽은 난이도를 높인 변형 동작) 차이가 작으면 practice는 비워도 돼.
 - program은 함께 할 운동 프로그램이야. minutesPerSession은 ${PROGRAM_MINUTES.min}~${PROGRAM_MINUTES.max}분, sessionsPerWeek는 주 ${PROGRAM_SESSIONS.min}~${PROGRAM_SESSIONS.max}회 안의 숫자로 쓰고, items에 운동 항목을 써. 한쪽이 1~2단계이면 낮은 강도로 시작하는 내용으로 써.
-- program·practice는 종목·실력·목적만 근거로 해. basis에는 이 세 이름만 써.
+- program·practice는 종목·실력·목적·진행 방식만 근거로 해. basis에는 이 네 이름만 써.
 - effects는 이 조합으로 운동했을 때의 효과야. 반드시 "~을 기대할 수 있어요"로 끝내고, 체중 감량 kg 같은 수치나 "반드시"처럼 단정하는 말은 쓰지 마.
 - 각 항목마다 근거로 쓴 입력 항목 이름을 basis 목록에 넣어. 이름은 ${BASIS_FIELDS.join(", ")} 중에서만 골라.
 - 아래 JSON 형식으로만 답하고, 다른 글자는 쓰지 마.
@@ -162,6 +171,11 @@ export function compareFields(me: Profile, candidate: Profile): { same: Set<Basi
   put("목적", me.goal === candidate.goal);
   put("성향", me.style === candidate.style);
   put("희망 지역", me.district === candidate.district);
+  // 진행 방식은 겹치는 방식이 있으면 공통점, 한쪽에만 있는 방식이 있으면 차이점이 될 수 있다.
+  if (me.modes.some((m) => candidate.modes.includes(m))) same.add("진행 방식");
+  if (me.modes.some((m) => !candidate.modes.includes(m)) || candidate.modes.some((m) => !me.modes.includes(m))) {
+    different.add("진행 방식");
+  }
 
   // 가능 시간은 겹치는 시간대가 있으면 공통점, 한쪽에만 있는 시간대가 있으면 차이점이 될 수 있다.
   if (overlappingSlots(me, candidate).length > 0) same.add("가능 시간");

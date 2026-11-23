@@ -5,8 +5,8 @@
 // Plan: 작업 7번 "적합도 점수 계산"
 //
 // 화면 없이 계산만 하는 코드라서, 같은 입력이면 항상 같은 결과가 나온다.
-import { filterCandidates, overlappingSlots } from "./filter";
-import type { Profile } from "./options";
+import { filterCandidates, matchMeetMode, overlappingSlots } from "./filter";
+import type { Mode, Profile } from "./options";
 // 실력 차이(단계)를 구하는 기준은 작업 8번에서 만든 lib/skill-gap.ts 한 곳에서만 정한다.
 import { levelGap } from "./skill-gap";
 
@@ -45,6 +45,8 @@ export interface Recommendation {
   matchedConditions: string[];
   /** 실력 차이 (단계) */
   levelGap: number;
+  /** 만나는 방식 (오프라인이면 같은 구, 온라인이면 구 상관없음) */
+  meetMode: Mode;
   /** 60점 이상인 후보가 없어서 점수 기준을 낮춰 보여주는 "참고용 후보"인지 */
   isReference: boolean;
 }
@@ -89,6 +91,8 @@ export function recommend(me: Profile, candidates: readonly Profile[]): Recommen
         breakdown,
         matchedConditions: matchedConditionsOf(me, profile),
         levelGap: levelGap(me, profile),
+        // 필수 조건을 통과한 후보라서 항상 값이 있다.
+        meetMode: matchMeetMode(me, profile) ?? "오프라인",
       };
     })
     // 정렬은 원래 순서를 지키는 안정 정렬이라, 점수와 실력 차이가 같으면 후보의 원래 순서가 남는다.

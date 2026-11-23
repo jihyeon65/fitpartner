@@ -123,7 +123,7 @@ export function computeMetrics(users: readonly UserRecord[], virtualProfiles: re
     }
   }
 
-  // 6) 초보자 비율: 가상 프로필 20명 기준
+  // 6) 초보자 비율: 가상 프로필(25명) 기준
   const beginners = virtualProfiles.filter((p) => p.level <= BEGINNER_MAX_LEVEL).length;
 
   return {

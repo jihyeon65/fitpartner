@@ -19,11 +19,12 @@ export async function POST(request: Request) {
   }
 
   const results = recommend(checked.profile, VIRTUAL_PROFILES).map(
-    ({ profile, score, matchedConditions, levelGap, isReference }) => ({
+    ({ profile, score, matchedConditions, levelGap, meetMode, isReference }) => ({
       profile,
       score,
       matchedConditions,
       levelGap,
+      meetMode,
       isReference,
     }),
   );

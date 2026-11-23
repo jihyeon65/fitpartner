@@ -7,7 +7,7 @@
 // Plan: 작업 14번 "매칭 요청" — 카드의 [매칭 요청] 버튼: 대기 중인 요청이 3명이면 비활성, 이미 요청한 사람은 "요청함"
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { MatchRequest, Profile } from "@/lib/options";
+import type { MatchRequest, Mode, Profile } from "@/lib/options";
 import { judgeSkillGap } from "@/lib/skill-gap";
 import { activeRequestTo, createRequest, MAX_PENDING_REQUESTS, pendingCount } from "@/lib/match";
 import { getRequestsJson, parseRequests, saveRequests } from "@/lib/store";
@@ -22,6 +22,8 @@ interface RecommendItem {
   score: number;
   matchedConditions: string[];
   levelGap: number;
+  /** 만나는 방식 (작업 22번) */
+  meetMode: Mode;
   isReference: boolean;
 }
 
@@ -169,6 +171,7 @@ function RecommendCard({
         <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{item.profile.nickname}</span>
         <span className="text-zinc-700 dark:text-zinc-300">적합도 {item.score}점</span>
         {badge ? <Badge text={badge} tone="green" /> : null}
+        <Badge text={item.meetMode} tone="sky" />
         {item.isReference ? <Badge text="참고용 후보" tone="amber" /> : null}
       </div>
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
@@ -204,10 +207,12 @@ function RecommendCard({
   );
 }
 
-function Badge({ text, tone }: { text: string; tone: "green" | "amber" }) {
+function Badge({ text, tone }: { text: string; tone: "green" | "amber" | "sky" }) {
   const color =
     tone === "green"
       ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-      : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300";
+      : tone === "sky"
+        ? "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300"
+        : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300";
   return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${color}`}>{text}</span>;
 }

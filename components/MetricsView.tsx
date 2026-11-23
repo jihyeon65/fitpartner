@@ -1,6 +1,6 @@
 "use client";
 
-// Design Ref: §3.7 지표 — 파트너 탐색 시간, 추천 만족도, 프로그램 도움 기대도, 일정 등록률, 운동 완료율, 초보자 비율(가상 프로필 20명 기준)을 숫자로 표시.
+// Design Ref: §3.7 지표 — 파트너 탐색 시간, 추천 만족도, 프로그램 도움 기대도, 일정 등록률, 운동 완료율, 초보자 비율(가상 프로필 25명 기준)을 숫자로 표시.
 //   이 브라우저에 저장된 모든 닉네임의 기록을 합산해 보여준다. (한 브라우저에서 닉네임을 바꿔 가며 시연)
 // Plan: 작업 19번 "지표 기록"
 import { computeMetrics, type Metric } from "@/lib/metrics";
@@ -76,7 +76,7 @@ export default function MetricsView() {
           metric={metrics.beginnerRate}
           goal="40% 이상"
           detail={`가상 프로필 ${metrics.beginnerRate.total}명 중 ${metrics.beginnerRate.count}명이 실력 1~2단계`}
-          how="가상 프로필 20명 기준이에요"
+          how="가상 프로필 25명 기준이에요"
         />
       </ul>
     </div>
