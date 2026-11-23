@@ -3,10 +3,12 @@
 // Design Ref: §3.3 추천 결과 — "▶ 추천 이유 / 연습 방식 / 프로그램" 펼침, AI 응답 중 표시, 실패 시 "잠시 후 다시 시도해 주세요"
 //   점수 목록은 그대로 두고 AI 영역에만 안내를 보인다. 참고 안내 문구는 서버(코드)가 붙인 것을 그대로 보여준다.
 // Plan: 작업 13번 "추천 결과 화면에 AI 결과 연결"
+// Plan: 작업 15번 "매칭 완료 화면" — 프로그램을 보여준 후보를 기록한다.
 //   펼쳤을 때 처음 한 번만 /api/analyze 를 부른다. (카드마다 AI를 미리 부르면 느리고 비용이 들기 때문)
 import { useState } from "react";
 import type { Profile } from "@/lib/options";
 import type { AnalysisResult, ReasonItem } from "@/lib/analysis";
+import { markProgramSeen } from "@/lib/store";
 
 type State =
   | { kind: "idle" }
@@ -33,7 +35,10 @@ export default function AnalysisPanel({ me, candidateId }: { me: Profile; candid
         setState({ kind: "error", message: RETRY_MESSAGE });
         return;
       }
-      setState({ kind: "done", result: (await response.json()) as AnalysisResult });
+      const result = (await response.json()) as AnalysisResult;
+      // 프로그램을 실제로 보여줬다면 기록한다. (매칭 완료 화면의 "프로그램 도움 기대도" 문항을 보일지 정하는 데 쓴다)
+      if (result.status === "ok" && result.program) markProgramSeen(me.nickname, candidateId);
+      setState({ kind: "done", result });
     } catch {
       setState({ kind: "error", message: RETRY_MESSAGE });
     }

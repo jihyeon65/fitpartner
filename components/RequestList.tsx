@@ -1,12 +1,14 @@
 "use client";
 
 // Design Ref: §3.4 매칭 — 보낸 요청 목록 (상대 닉네임·상태: 대기/수락/만료·남은 시간)
-// Plan: 작업 14번 "매칭 요청" — 수락된 매칭의 "매칭 완료 화면 열기"는 작업 15번에서 이어서 만든다.
+// Plan: 작업 14번 "매칭 요청", 작업 15번 "매칭 완료 화면" — 수락된 요청에서 "매칭 완료 화면 열기"를 누르면 MatchComplete 를 보여준다.
 import Link from "next/link";
+import { useState } from "react";
 import { currentStatus, formatRemaining, remainingMs, type RequestStatus } from "@/lib/match";
 import { VIRTUAL_PROFILES } from "@/lib/profiles";
 import { useNickname } from "@/lib/use-nickname";
-import { useNow, useRequests } from "@/lib/use-requests";
+import { useNow, useProgramSeen, useRequests } from "@/lib/use-requests";
+import MatchComplete from "./MatchComplete";
 
 const STATUS_STYLE: Record<RequestStatus, string> = {
   대기: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
@@ -18,15 +20,30 @@ export default function RequestList() {
   const nickname = useNickname();
   const requests = useRequests(nickname ?? null);
   const now = useNow();
+  const programSeen = useProgramSeen(nickname ?? null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   // 서버가 만든 첫 화면에서는 아직 브라우저 저장소를 모르므로 아무것도 그리지 않는다.
-  if (nickname === undefined || requests === undefined) return null;
+  if (nickname === undefined || requests === undefined || programSeen === undefined) return null;
 
   if (nickname === null) {
     return <Guide text="먼저 닉네임을 정해 주세요." href="/" button="닉네임 정하러 가기" />;
   }
   if (requests.length === 0) {
     return <Guide text="아직 보낸 요청이 없어요. 추천 결과에서 마음에 드는 파트너에게 매칭을 요청해 보세요." href="/recommend" button="추천 결과 보러 가기" />;
+  }
+
+  // 수락된 요청을 열어 둔 경우에는 목록 대신 매칭 완료 화면을 보여준다.
+  const opened = openId ? requests.find((r) => r.id === openId) : undefined;
+  if (opened && currentStatus(opened, now) === "수락") {
+    return (
+      <MatchComplete
+        request={opened}
+        partner={VIRTUAL_PROFILES.find((p) => p.id === opened.toProfileId)}
+        programSeen={programSeen.includes(opened.toProfileId)}
+        onBack={() => setOpenId(null)}
+      />
+    );
   }
 
   // 최근에 보낸 요청이 위로 오게 한다.
@@ -49,6 +66,15 @@ export default function RequestList() {
               <span className="text-sm text-zinc-600 dark:text-zinc-400">
                 만료까지 {formatRemaining(remainingMs(request, now))}
               </span>
+            ) : null}
+            {status === "수락" ? (
+              <button
+                type="button"
+                onClick={() => setOpenId(request.id)}
+                className="ml-auto rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
+              >
+                매칭 완료 화면 열기
+              </button>
             ) : null}
           </li>
         );

@@ -279,3 +279,63 @@ export function subscribeRequests(callback: () => void): () => void {
     window.removeEventListener("storage", onStorage);
   };
 }
+
+// ───────────── AI 프로그램을 화면에서 본 후보 (닉네임별) ─────────────
+// Plan: 작업 15번 "매칭 완료 화면" — AI 프로그램이 화면에 보이지 않은 경우에는 "프로그램 도움 기대도" 문항을 숨기고
+//   지표에서 제외해야 해서, 추천 카드에서 프로그램을 실제로 보여준 후보를 기록해 둔다.
+
+const PROGRAM_SEEN_EVENT = "fitpartner:program-seen-changed";
+
+function programSeenKey(nickname: string): string {
+  return `fitpartner:user:${encodeURIComponent(nickname)}:program-seen`;
+}
+
+/** 저장된 원문(JSON 글자). 없거나 저장소를 쓸 수 없으면 null */
+export function getProgramSeenJson(nickname: string): string | null {
+  const storage = getStorage();
+  if (!storage) return null;
+  try {
+    return storage.getItem(programSeenKey(nickname));
+  } catch {
+    return null;
+  }
+}
+
+/** 저장된 글자를 후보 id 목록으로 바꾼다. 글자가 아닌 값은 버린다. */
+export function parseProgramSeen(json: string | null): string[] {
+  if (json === null) return [];
+  try {
+    const data: unknown = JSON.parse(json);
+    return Array.isArray(data) ? data.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 이 후보의 AI 프로그램을 화면에 보여줬다고 기록한다. (이미 기록돼 있으면 아무것도 하지 않는다) */
+export function markProgramSeen(nickname: string, candidateId: string): void {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    const seen = parseProgramSeen(storage.getItem(programSeenKey(nickname)));
+    if (seen.includes(candidateId)) return;
+    storage.setItem(programSeenKey(nickname), JSON.stringify([...seen, candidateId]));
+  } catch {
+    return;
+  }
+  window.dispatchEvent(new Event(PROGRAM_SEEN_EVENT));
+}
+
+/** 기록이 바뀌면 callback을 부른다. (useSyncExternalStore에 넘기는 구독 함수) */
+export function subscribeProgramSeen(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key.endsWith(":program-seen")) callback();
+  };
+  window.addEventListener(PROGRAM_SEEN_EVENT, callback);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(PROGRAM_SEEN_EVENT, callback);
+    window.removeEventListener("storage", onStorage);
+  };
+}

@@ -2,7 +2,14 @@
 // Plan: 작업 14번 "매칭 요청"
 import { useMemo, useSyncExternalStore } from "react";
 import type { MatchRequest } from "./options";
-import { getRequestsJson, parseRequests, subscribeRequests } from "./store";
+import {
+  getProgramSeenJson,
+  getRequestsJson,
+  parseProgramSeen,
+  parseRequests,
+  subscribeProgramSeen,
+  subscribeRequests,
+} from "./store";
 
 /**
  * 이 닉네임으로 보낸 매칭 요청 목록.
@@ -15,6 +22,16 @@ export function useRequests(nickname: string | null): MatchRequest[] | undefined
     () => undefined,
   );
   return useMemo(() => (json === undefined ? undefined : parseRequests(json)), [json]);
+}
+
+/** AI 프로그램을 화면에서 본 후보의 id 목록. undefined는 아직 브라우저 저장소를 읽기 전이라는 뜻이다. */
+export function useProgramSeen(nickname: string | null): string[] | undefined {
+  const json = useSyncExternalStore(
+    subscribeProgramSeen,
+    () => (nickname === null ? null : getProgramSeenJson(nickname)),
+    () => undefined,
+  );
+  return useMemo(() => (json === undefined ? undefined : parseProgramSeen(json)), [json]);
 }
 
 // 현재 시각은 모든 화면이 함께 쓰는 하나의 값으로 둔다. (서버가 만드는 첫 화면에서는 시각을 모르므로 0으로 둔다)
