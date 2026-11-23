@@ -7,6 +7,8 @@
 // 화면 없이 계산만 하는 코드라서, 같은 입력이면 항상 같은 결과가 나온다.
 import { filterCandidates, overlappingSlots } from "./filter";
 import type { Profile } from "./options";
+// 실력 차이(단계)를 구하는 기준은 작업 8번에서 만든 lib/skill-gap.ts 한 곳에서만 정한다.
+import { levelGap } from "./skill-gap";
 
 /** 이 점수 이상인 후보만 추천한다. */
 export const RECOMMEND_MIN_SCORE = 60;
@@ -47,16 +49,11 @@ export interface Recommendation {
   isReference: boolean;
 }
 
-/** 실력 차이(단계) */
-function levelGapOf(a: Profile, b: Profile): number {
-  return Math.abs(a.level - b.level);
-}
-
 /** 후보 한 명의 점수를 항목별로 계산한다. (필수 조건을 통과한 후보에게 쓰는 것을 전제로 한다) */
 export function scoreCandidate(me: Profile, candidate: Profile): ScoreBreakdown {
   const overlap = overlappingSlots(me, candidate).length;
   const time = Math.min(overlap * POINTS_PER_OVERLAPPING_SLOT, SCORE_WEIGHTS.time);
-  const level = LEVEL_GAP_SCORES[levelGapOf(me, candidate)] ?? 0;
+  const level = LEVEL_GAP_SCORES[levelGap(me, candidate)] ?? 0;
   const goal = me.goal === candidate.goal ? SCORE_WEIGHTS.goal : 0;
   const style = me.style === candidate.style ? SCORE_WEIGHTS.style : 0;
   return { time, level, goal, style, total: time + level + goal + style };
@@ -67,7 +64,7 @@ function matchedConditionsOf(me: Profile, candidate: Profile): string[] {
   const matched = ["종목"];
   const overlap = overlappingSlots(me, candidate).length;
   if (overlap > 0) matched.push(`시간 ${overlap}개`);
-  const gap = levelGapOf(me, candidate);
+  const gap = levelGap(me, candidate);
   if (gap === 0) matched.push("실력 같음");
   else if (gap === 1) matched.push("실력 비슷함");
   if (me.goal === candidate.goal) matched.push("목적");
@@ -91,7 +88,7 @@ export function recommend(me: Profile, candidates: readonly Profile[]): Recommen
         score: breakdown.total,
         breakdown,
         matchedConditions: matchedConditionsOf(me, profile),
-        levelGap: levelGapOf(me, profile),
+        levelGap: levelGap(me, profile),
       };
     })
     // 정렬은 원래 순서를 지키는 안정 정렬이라, 점수와 실력 차이가 같으면 후보의 원래 순서가 남는다.

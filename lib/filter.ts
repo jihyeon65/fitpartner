@@ -6,12 +6,8 @@
 // 이 파일은 후보를 걸러내기만 한다. 점수는 작업 7번(lib/score.ts)에서 매긴다.
 // 화면 없이 계산만 하는 코드라서, 같은 입력이면 항상 같은 결과가 나온다.
 import type { Profile, Slot } from "./options";
-
-/**
- * "비슷한 실력"으로 보는 실력 차이의 최대값 (0~1단계).
- * 실력 차이 판정(작업 8번, lib/skill-gap.ts)이 생기면 같은 기준을 그쪽에서 가져다 쓰도록 옮길 수 있다.
- */
-const SIMILAR_LEVEL_MAX_GAP = 1;
+// "비슷한 실력"(실력 차이 0~1단계) 기준은 작업 8번에서 만든 lib/skill-gap.ts 한 곳에서만 정한다.
+import { isSimilarLevel } from "./skill-gap";
 
 /** 두 사람의 가능 시간 중 겹치는 시간대 (내 가능 시간의 순서를 지킨다) */
 export function overlappingSlots(a: Pick<Profile, "slots">, b: Pick<Profile, "slots">): Slot[] {
@@ -33,10 +29,7 @@ export function passesRequiredConditions(me: Profile, candidate: Profile): boole
   if (overlappingSlots(me, candidate).length === 0) return false;
 
   // 사용자가 고른 파트너 조건 (필수 조건에 더해 적용)
-  if (
-    me.partnerConditions.includes("비슷한 실력만 보기") &&
-    Math.abs(candidate.level - me.level) > SIMILAR_LEVEL_MAX_GAP
-  ) {
+  if (me.partnerConditions.includes("비슷한 실력만 보기") && !isSimilarLevel(me, candidate)) {
     return false;
   }
   if (me.partnerConditions.includes("같은 운동 목적만 보기") && candidate.goal !== me.goal) {
