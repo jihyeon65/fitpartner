@@ -1,7 +1,8 @@
 // Design Ref: §5 저장 위치 — 운동 시설 정보는 서버 코드 안의 샘플 데이터(27곳)에서 읽는다. (공공데이터 연동은 보류)
-// Design Ref: §5 선택지 제안값 — 구 3개 × 종목 3개 × 3곳, 이름에 "샘플"을 붙이고 주소는 가상 주소,
+// Design Ref: §5 선택지 제안값 — 구 3개 × 종목 3개 × 3곳, 주소는 가상 주소,
 //   좌표는 구 중심 좌표에서 ±0.01도 안으로 흩어서 정하며 27곳 중 2곳은 좌표를 비운다.
-// Design Ref: §9 보안 — 샘플 데이터에 실제 개인·업소 정보를 넣지 않는다. (가상 이름·주소만 사용)
+//   (이름은 "샘플 ○○ 1"처럼 붙이지 않고, 실제 시설처럼 보이는 지어낸 이름을 쓴다. 화면의 "시설 정보는 샘플 데이터입니다" 안내는 그대로 둔다)
+// Design Ref: §9 보안 — 샘플 데이터에 실제 개인·업소 정보를 넣지 않는다. (실제 업소 이름이 아니라 지어낸 이름과 가상 주소만 사용)
 // Plan: 작업 16번 "시설 샘플 데이터 만들기" — 나중에 공공데이터로 바꿔도 같은 Place 모양을 돌려주면 화면은 그대로 둘 수 있다.
 import "server-only";
 import { DISTRICT_CENTERS } from "./districts";
@@ -10,18 +11,32 @@ import { DISTRICTS, SPORTS, type District, type Place, type Sport } from "./opti
 /** 한 번에 돌려주는 시설의 최대 개수 */
 export const MAX_PLACES = 50;
 
-/** 구 이름 → 시설 id·이름에 쓰는 짧은 글자 */
-const DISTRICT_CODE: Record<District, { id: string; label: string }> = {
-  대덕구: { id: "daedeok", label: "대덕" },
-  중구: { id: "jung", label: "중구" },
-  유성구: { id: "yuseong", label: "유성" },
-};
+/** 구 이름 → 시설 id에 쓰는 글자 */
+const DISTRICT_ID: Record<District, string> = { 대덕구: "daedeok", 중구: "jung", 유성구: "yuseong" };
 
-/** 종목 → 시설 id·이름에 쓰는 글자 (시설 종류 대응: 러닝=공원·운동장, 배드민턴=체육관, 헬스=헬스장) */
-const SPORT_CODE: Record<Sport, { id: string; kind: string }> = {
-  러닝: { id: "running", kind: "러닝 공원" },
-  배드민턴: { id: "badminton", kind: "배드민턴장" },
-  헬스: { id: "gym", kind: "헬스장" },
+/** 종목 → 시설 id에 쓰는 글자 */
+const SPORT_ID: Record<Sport, string> = { 러닝: "running", 배드민턴: "badminton", 헬스: "gym" };
+
+/**
+ * 시설 이름 (구 → 종목 → 1·2·3번 순서). 시설 종류 대응: 러닝=공원·트랙, 배드민턴=체육관, 헬스=헬스장.
+ * 실제 업소와 겹치지 않도록 지어낸 이름이다. 27개 모두 서로 달라야 한다.
+ */
+const NAMES: Record<District, Record<Sport, [string, string, string]>> = {
+  대덕구: {
+    러닝: ["푸른솔 러닝파크", "새벽바람 트랙", "한밭 달리기공원"],
+    배드민턴: ["스매시 체육관", "셔틀콕 아레나", "라켓온 배드민턴장"],
+    헬스: ["힘찬 피트니스", "아이언핏 헬스장", "바디온 짐"],
+  },
+  중구: {
+    러닝: ["은행나무 러닝파크", "달빛 트랙", "온누리 달리기공원"],
+    배드민턴: ["클리어 체육관", "드롭샷 아레나", "윙스 배드민턴장"],
+    헬스: ["파워업 피트니스", "스트롱핏 헬스장", "코어랩 짐"],
+  },
+  유성구: {
+    러닝: ["솔바람 러닝파크", "별빛 트랙", "온천수 달리기공원"],
+    배드민턴: ["랠리 체육관", "스윙온 아레나", "하이클리어 배드민턴장"],
+    헬스: ["맥스핏 피트니스", "바디웍스 헬스장", "리프트존 짐"],
+  },
 };
 
 /**
@@ -49,11 +64,11 @@ function buildSamplePlaces(): Place[] {
     for (const sport of SPORTS) {
       OFFSETS[sport].forEach(([dLat, dLng], index) => {
         const number = index + 1;
-        const id = `${DISTRICT_CODE[district].id}-${SPORT_CODE[sport].id}-${number}`;
+        const id = `${DISTRICT_ID[district]}-${SPORT_ID[sport]}-${number}`;
         const place: Place = {
           id,
-          name: `샘플 ${DISTRICT_CODE[district].label} ${SPORT_CODE[sport].kind} ${number}`,
-          address: `대전광역시 ${district} 샘플로 ${number * 10 + SPORTS.indexOf(sport)}번길 (가상 주소)`,
+          name: NAMES[district][sport][index],
+          address: `대전광역시 ${district} 가온로 ${number * 10 + SPORTS.indexOf(sport)}번길 (가상 주소)`,
           sports: [sport],
           district,
         };
