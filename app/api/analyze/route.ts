@@ -1,7 +1,7 @@
 // Design Ref: §7 API 명세 — POST /api/analyze: 사용자·후보 한 쌍을 받아 AI 분석을 호출하고, 검사·후처리한 결과를 반환
 //   AI 시간 초과·호출 실패는 503, 정보 부족은 200 + 안내
 // Design Ref: §4.2 — AI에는 닉네임 없이 코드 값만 보낸다.
-// Plan: 작업 11번 "AI 성향 분석·추천 이유" — 연습 방식·프로그램은 작업 12번에서 이 API에 이어서 붙인다.
+// Plan: 작업 11번 "AI 성향 분석·추천 이유", 작업 12번 "AI 연습 방식·운동 프로그램 추천"
 import { aiFailureResponse, askAi } from "@/lib/ai";
 import { ANALYSIS_INSTRUCTIONS, buildAnalysisInput, checkAnalysis } from "@/lib/analysis";
 import { VIRTUAL_PROFILES } from "@/lib/profiles";
