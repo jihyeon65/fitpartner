@@ -69,7 +69,7 @@ export default function GroupsView() {
 
   // 가상 모임은 날짜가 "오늘 기준"이라, 하루에 한 번만 다시 만든다. (1초마다 바뀌는 now로 매번 만들지 않는다)
   const day = todayString(new Date(now));
-  const seeds = useMemo(() => buildSeedGroups(Date.parse(`${day}T12:00:00`)), [day]);
+  const seeds = useMemo(() => buildSeedGroups(Date.parse(`${day}T12:00:00+09:00`)), [day]);
 
   // 서버가 만든 첫 화면에서는 아직 브라우저 저장소를 모르므로 아무것도 그리지 않는다.
   if (nickname === undefined || profile === undefined || userGroups === undefined || myJoins === undefined || allJoins === undefined) {

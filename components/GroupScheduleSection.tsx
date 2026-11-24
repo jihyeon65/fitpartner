@@ -38,7 +38,7 @@ export default function GroupScheduleSection({ me }: { me: Profile }) {
 
   // 가상 모임은 날짜가 "오늘 기준"이라 하루에 한 번만 다시 만든다.
   const day = todayString(new Date(now));
-  const seeds = useMemo(() => buildSeedGroups(Date.parse(`${day}T12:00:00`)), [day]);
+  const seeds = useMemo(() => buildSeedGroups(Date.parse(`${day}T12:00:00+09:00`)), [day]);
 
   if (userGroups === undefined || myJoins === undefined || allJoins === undefined) return null;
 

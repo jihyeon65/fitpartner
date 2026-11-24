@@ -15,10 +15,14 @@ function parseDate(date: string): Date | null {
   return isSame ? parsed : null;
 }
 
-/** 오늘 날짜를 "YYYY-MM-DD" 글자로 (이 컴퓨터의 시간대 기준) */
+/**
+ * 오늘 날짜를 "YYYY-MM-DD" 글자로. 서비스가 대전(한국)용이라 항상 한국 시간(UTC+9) 기준이다.
+ * 서버(Vercel은 UTC)와 브라우저가 같은 날짜를 말하도록, 실행하는 컴퓨터의 시간대는 쓰지 않는다.
+ */
 export function todayString(now: Date = new Date()): string {
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())}`;
 }
 
 /** 시간대의 "평일/주말"이 그 날짜의 요일과 맞는지 (예: "평일 저녁"은 월~금 날짜만) */

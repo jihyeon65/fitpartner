@@ -23,7 +23,7 @@ export default function MetricsView() {
   const allJoins = useAllGroupJoins();
   const now = useNow();
   const day = todayString(new Date(now));
-  const seeds = useMemo(() => buildSeedGroups(Date.parse(`${day}T12:00:00`)), [day]);
+  const seeds = useMemo(() => buildSeedGroups(Date.parse(`${day}T12:00:00+09:00`)), [day]);
 
   // 서버가 만든 첫 화면에서는 아직 브라우저 저장소를 모르므로 아무것도 그리지 않는다.
   if (users === undefined || userGroups === undefined || allJoins === undefined) return null;
