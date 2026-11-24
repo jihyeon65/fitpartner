@@ -86,7 +86,7 @@ function matchedConditionsOf(me: Profile, candidate: Profile): string[] {
  *  - 60점 이상인 후보가 있으면 그 후보만, 점수 높은 순으로 최대 5명
  *  - 60점 이상인 후보가 없으면 필수 조건은 그대로 두고 점수 기준만 낮춰, 가장 가까운 후보를 최대 5명 ("참고용 후보")
  *  - 점수가 같으면 실력 차이가 작은 쪽을 앞에 둔다. 그래도 같으면 후보의 원래 순서를 지킨다.
- *  - 필수 조건을 통과한 후보가 없으면 빈 목록
+ *  - 필수 조건을 통과한 후보가 없으면 조건을 풀어 가장 가까운 후보를 "참고용" 대체 후보로 (recommendRelaxed, DESIGN 4.1-1)
  */
 export function recommend(me: Profile, candidates: readonly Profile[]): Recommendation[] {
   const passed = filterCandidates(me, candidates);

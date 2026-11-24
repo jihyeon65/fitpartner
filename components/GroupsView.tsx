@@ -293,9 +293,18 @@ function CreateGroup({ me, onCreated }: { me: Profile; onCreated: () => void }) 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         모든 항목은 선택해서 정해요. 모임 제목은 선택한 내용으로 자동으로 만들어져요.
       </p>
-      <SingleChoice legend="종목" options={SPORTS} value={sport} onChange={clear(setSport)} />
-      <SingleChoice legend="진행 방식" options={MODES} value={mode} onChange={clear(setMode)} />
-      <SingleChoice legend="구" options={DISTRICTS} value={district} onChange={clear(setDistrict)} />
+      <SingleChoice legend="종목" options={SPORTS} value={sport} onChange={(value: (typeof SPORTS)[number] | null) => {
+        clear(setSport)(value);
+        setPlace(null);
+      }} />
+      <SingleChoice legend="진행 방식" options={MODES} value={mode} onChange={(value: (typeof MODES)[number] | null) => {
+        clear(setMode)(value);
+        setPlace(null);
+      }} />
+      <SingleChoice legend="구" options={DISTRICTS} value={district} onChange={(value: (typeof DISTRICTS)[number] | null) => {
+        clear(setDistrict)(value);
+        setPlace(null);
+      }} />
       {mode === "오프라인" ? <PlacePicker sport={sport} district={district} value={place} onChange={setPlace} /> : null}
       <SingleChoice legend="시간대" options={SLOTS} value={slot} onChange={clear(setSlot)} />
       <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">

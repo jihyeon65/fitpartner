@@ -64,7 +64,7 @@ export function buildAnalysisInput(me: Profile, candidate: Profile): AnalysisInp
   return {
     나: publicFields(me),
     상대: publicFields(candidate),
-    "만나는 방식": matchMeetMode(me, candidate) ?? "오프라인",
+    "만나는 방식": matchMeetMode(me, candidate) ?? me.modes[0] ?? "오프라인",
   };
 }
 

@@ -144,6 +144,9 @@ function ScheduleForm({
 }) {
   const router = useRouter();
   const common = overlappingSlots(me, partner);
+  // 조건을 풀어 추천된 상대와 시간이 겹치지 않으면, 내 가능 시간에서 고르고 상대와는 따로 조율한다. (DESIGN 4.1-1)
+  const noOverlap = common.length === 0;
+  const allowed = noOverlap ? me.slots : common;
   // 장소 화면을 다녀온 경우에는 그때 남겨 둔 값으로 시작한다.
   const [slot, setSlot] = useState<Slot | null>(draft?.slot ?? null);
   const [date, setDate] = useState(draft?.date ?? "");
@@ -166,7 +169,7 @@ function ScheduleForm({
     const latest = parseSchedules(getSchedulesJson(me.nickname));
     const result = createSchedule(
       { matchId: request.id, ownerNickname: me.nickname, mode: request.mode, slot, date, place },
-      common,
+      allowed,
       latest,
       today,
     );
@@ -187,20 +190,21 @@ function ScheduleForm({
     <form onSubmit={handleSubmit} className="flex max-w-2xl flex-col gap-5 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
       <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{partner.nickname}님과 일정 잡기</h2>
 
-      {common.length === 0 ? (
-        <p className="text-amber-700 dark:text-amber-400">두 사람이 함께 가능한 시간이 없어요.</p>
-      ) : (
-        <SingleChoice
-          legend="함께 가능한 시간"
-          hint="두 사람의 가능 시간이 겹치는 시간대예요."
-          options={common}
-          value={slot}
-          onChange={(next) => {
-            setSlot(next);
-            setError("");
-          }}
-        />
-      )}
+      {noOverlap ? (
+        <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+          두 사람의 가능 시간이 겹치지 않아요. 내 가능 시간에서 고르고, 상대와는 따로 조율해 주세요.
+        </p>
+      ) : null}
+      <SingleChoice
+        legend={noOverlap ? "내 가능 시간" : "함께 가능한 시간"}
+        hint={noOverlap ? "내가 가능한 시간대예요." : "두 사람의 가능 시간이 겹치는 시간대예요."}
+        options={allowed}
+        value={slot}
+        onChange={(next) => {
+          setSlot(next);
+          setError("");
+        }}
+      />
 
       <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         운동 날짜
@@ -257,7 +261,7 @@ function ScheduleForm({
       ) : null}
       <button
         type="submit"
-        disabled={common.length === 0}
+        disabled={allowed.length === 0}
         className="w-fit rounded-md bg-emerald-600 px-5 py-2 font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 dark:disabled:bg-zinc-800"
       >
         일정 등록
