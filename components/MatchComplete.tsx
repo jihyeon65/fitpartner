@@ -70,7 +70,7 @@ export default function MatchComplete({
         ⚠ {SAFETY_NOTICES[request.mode]}.
       </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+      <form onSubmit={handleSubmit} className="surface flex flex-col gap-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
         <YesNo
           legend="추천이 잘 맞았나요?"
           value={satisfaction}

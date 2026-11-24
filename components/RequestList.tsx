@@ -56,7 +56,7 @@ export default function RequestList() {
         return (
           <li
             key={request.id}
-            className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
+            className="surface flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
           >
             <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               {partner?.nickname ?? "알 수 없는 상대"}

@@ -187,7 +187,7 @@ function ScheduleForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex max-w-2xl flex-col gap-5 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+    <form onSubmit={handleSubmit} className="surface flex max-w-2xl flex-col gap-5 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
       <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{partner.nickname}님과 일정 잡기</h2>
 
       {noOverlap ? (
@@ -282,7 +282,7 @@ function ScheduleCard({ me, partner, schedule }: { me: Profile; partner: Profile
   }
 
   return (
-    <div className="flex max-w-2xl flex-col gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+    <div className="surface flex max-w-2xl flex-col gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
       <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{partner.nickname}님과의 일정</h2>
       <p className="text-zinc-800 dark:text-zinc-200">
         {schedule.date} · {schedule.slot}

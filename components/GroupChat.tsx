@@ -57,7 +57,7 @@ function ChatRoom({ group, me, allJoins }: { group: Group; me: Profile; allJoins
   }
 
   return (
-    <div className="mt-2 flex max-w-xl flex-col gap-2 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+    <div className="surface mt-2 flex max-w-xl flex-col gap-2 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
       <p className="rounded-md bg-amber-50 p-2 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">⚠ {CHAT_NOTICE}</p>
       <ul ref={listRef} aria-label="채팅 글" className="flex h-56 flex-col gap-2 overflow-y-auto">
         {messages.length === 0 ? (

@@ -68,7 +68,7 @@ export default function GroupScheduleSection({ me }: { me: Profile }) {
       ) : (
         <ul className="flex max-w-2xl flex-col gap-3">
           {items.map((item) => (
-            <li key={`${item.role}-${item.group.id}`} className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+            <li key={`${item.role}-${item.group.id}`} className="surface flex flex-col gap-2 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-zinc-900 dark:text-zinc-50">{groupTitle(item.group)}</span>
                 <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">

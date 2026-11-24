@@ -146,7 +146,7 @@ export default function PlacesExplorer() {
             </ul>
 
             {selected ? (
-              <div className="rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800">
+              <div className="surface rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800">
                 <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">{selected.name}</h3>
                 <p className="mt-1 text-zinc-700 dark:text-zinc-300">{selected.address}</p>
                 <p className="text-zinc-700 dark:text-zinc-300">종목: {selected.sports.join(", ")}</p>

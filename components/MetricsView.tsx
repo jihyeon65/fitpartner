@@ -110,7 +110,7 @@ function Card({
   how: string;
 }) {
   return (
-    <li className="flex flex-col gap-1 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+    <li className="surface tilt flex flex-col gap-1 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
       <div className="flex items-center gap-2">
         <h2 className="font-semibold text-zinc-900 dark:text-zinc-50">{title}</h2>
         {metric.met === null ? null : (

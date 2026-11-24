@@ -7,7 +7,7 @@ import NicknameBadge from "./NicknameBadge";
 
 export default function SiteHeader() {
   return (
-    <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <header className="sticky top-0 z-[1100] border-b border-zinc-200/70 bg-white/70 backdrop-blur-xl dark:border-zinc-800/70 dark:bg-zinc-950/70">
       <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
         <div className="flex items-center gap-4">
           <Link href="/" aria-label="FitPartner 홈">

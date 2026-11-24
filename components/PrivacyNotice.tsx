@@ -18,7 +18,7 @@ export default function PrivacyNotice() {
   }
 
   return (
-    <div className="flex max-w-xl flex-col gap-2 rounded-lg border border-zinc-200 p-4 text-sm text-zinc-700 dark:border-zinc-800 dark:text-zinc-300">
+    <div className="surface flex max-w-xl flex-col gap-2 rounded-lg border border-zinc-200 p-4 text-sm text-zinc-700 dark:border-zinc-800 dark:text-zinc-300">
       <p>
         프로필·일정·채팅 글은 이 기기의 브라우저에만 저장돼요. 로그인이 없어서 같은 기기에서 같은 닉네임을 쓰면 누구나 볼 수 있어요.
         공용 컴퓨터라면 사용 후 기록을 지워 주세요.
