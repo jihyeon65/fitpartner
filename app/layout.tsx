@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "핏파트너",
+  title: "FitPartner",
   description: "AI 기반 맞춤형 스포츠 운동 파트너 매칭 서비스",
 };
 
