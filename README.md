@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FitPartner (핏파트너)
 
-## Getting Started
+AI 기반 맞춤형 스포츠 운동 파트너 매칭 서비스입니다. 조건이 맞는 파트너와 모임을 **점수로 추천**하고, AI가 **추천 이유·연습 방식·운동 프로그램**까지 설명해 줍니다. 대전광역시(대덕구·중구·유성구)를 기준으로 한 실습용 시연 서비스입니다.
 
-First, run the development server:
+## 주요 기능
+
+- **파트너 추천 (M1):** 선택형 프로필(종목·실력·목적·성향·가능 시간·지역·진행 방식)로 필수 조건을 거르고, 코드가 점수(시간 30 · 실력 25 · 목적 25 · 성향 20)를 계산해 최대 5명을 보여줍니다. 맞는 사람이 없어도 가장 가까운 "참고용 후보"를 보여줍니다.
+- **AI 분석·프로그램 (M2):** 추천 이유, 연습 방식, 운동 프로그램, 기대 효과를 AI가 설명합니다. 점수는 AI가 아니라 코드가 계산하고, 건강 조언·수치 약속은 코드가 걸러냅니다.
+- **매칭 요청과 일정:** 요청은 시연용으로 1분 뒤 만료되고, 동시 요청은 3명까지입니다. 수락된 매칭은 일정과 장소를 정하고 "운동 완료"를 체크합니다.
+- **온라인·오프라인 매칭:** 진행 방식을 고르고, 온라인은 지역 조건 없이 매칭됩니다.
+- **1대다수 모임:** 모임을 만들거나 참여하고, 온라인 모임은 앱 안 글 채팅방(시연용)에서 소통합니다. 오프라인 모임은 운동 장소를 고를 수 있습니다.
+- **지도·시설 검색:** 종목(러닝·배드민턴·헬스)과 구로 시설을 검색해 지도(OpenStreetMap)에서 보고 일정 장소로 저장합니다. 시설 정보는 샘플 데이터입니다.
+- **지표 화면:** 파트너 탐색 시간, 추천 만족도, 프로그램 도움 기대도, 일정 등록률, 운동 완료율, 초보자 비율을 확인합니다.
+
+## 기술 스택
+
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · OpenAI API(`gpt-4o-mini`, 서버 전용) · zod · Leaflet · 브라우저 localStorage(DB 없음)
+
+## 시작하기
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+# 프로젝트 폴더에 .env 파일을 만들고 아래 환경변수를 적는다 (OPENAI_API_KEY=...)
+npm run dev            # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| 명령 | 설명 |
+|---|---|
+| `npm run dev` | 개발 서버 |
+| `npm run lint` | 코드 검사 |
+| `npm run build` | 배포용 빌드 확인 |
+| `npm run start` | 빌드한 앱 실행 |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 환경변수
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| 이름 | 설명 |
+|---|---|
+| `OPENAI_API_KEY` | AI 분석에 필요합니다. **서버에서만 읽으며**, `NEXT_PUBLIC_`을 붙이거나 커밋하지 않습니다. 없어도 추천 목록과 점수는 동작하고, AI 영역만 "잠시 후 다시 시도해 주세요"로 보입니다. |
 
-## Learn More
+`.env`는 `.gitignore`에 들어 있어 커밋되지 않습니다.
 
-To learn more about Next.js, take a look at the following resources:
+## 배포 (Vercel)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+환경변수 `OPENAI_API_KEY` 하나만 등록하면 됩니다. API 호출 제한은 서버마다 따로 세는 기본 방어선이므로, 공개 규모가 커지면 공용 저장소(예: Upstash)로 바꾸고 OpenAI 월 사용 한도를 설정하세요.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 문서
 
-## Deploy on Vercel
+| 문서 | 내용 |
+|---|---|
+| [PRD.md](PRD.md) | 무엇을 왜 만드는지 (기능·규칙·범위) |
+| [PLAN.md](PLAN.md) | 작업 순서와 성공 기준 |
+| [DESIGN.md](DESIGN.md) | 화면·데이터 흐름·API·보안 설계 |
+| [CHECK.md](CHECK.md) | 설계↔구현 점검, 성공 기준 판정, 보안 점검 결과 |
+| [CLAUDE.md](CLAUDE.md) | 개발 작업 규칙 |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 알아둘 점
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 로그인이 없고 **닉네임만** 입력합니다. 프로필·일정·채팅 글은 이 브라우저에만 저장되며, 공용 컴퓨터라면 첫 화면의 [내 기록 지우기]를 쓰세요.
+- 후보 파트너와 시설, 모임은 **가상 데이터**입니다. 채팅은 시연용이라 다른 기기와 실시간으로 주고받지 않습니다.
+- 적합도 점수와 AI 분석은 참고용이며 매칭 성공이나 운동 효과를 보장하지 않습니다.
