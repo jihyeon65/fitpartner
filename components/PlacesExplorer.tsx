@@ -99,7 +99,7 @@ export default function PlacesExplorer() {
         </p>
       ) : null}
       {current && "places" in current && places.length === 0 ? (
-        <p className="text-zinc-700 dark:text-zinc-300">이 조건의 시설을 찾지 못했어요.</p>
+        <p className="text-zinc-700 dark:text-zinc-300">이 조건의 시설을 찾지 못했어요. 종목이나 구를 바꿔 보세요.</p>
       ) : null}
 
       {current && "places" in current && places.length > 0 ? (

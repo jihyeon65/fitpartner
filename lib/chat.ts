@@ -70,6 +70,18 @@ function virtualVoices(group: Group, allJoins: readonly GroupJoin[], nowMs: numb
   return names;
 }
 
+/**
+ * 개인정보로 보이는 글인지: 전화번호(숫자 9자리 이상), 이메일, 링크는 보내지 않는다.
+ * 자유 입력이라 완벽하게 막을 수는 없으므로, 눈에 띄는 형식만 막고 상단 안내 문구를 함께 둔다.
+ */
+export function looksPersonal(text: string): boolean {
+  const digitsOnly = text.replace(/[\s.\-()]/g, "");
+  if (/\d{9,}/.test(digitsOnly)) return true;
+  if (/[\w.+-]+@[\w-]+\.[\w.-]+/.test(text)) return true;
+  if (/(https?:\/\/|www\.)\S+/i.test(text)) return true;
+  return false;
+}
+
 export type SendResult = { ok: true; messages: ChatMessage[] } | { ok: false; message: string };
 
 /**
@@ -87,6 +99,8 @@ export function sendMessage(
   const trimmed = text.trim();
   if (trimmed.length === 0) return { ok: false, message: "보낼 글을 입력해 주세요." };
   if (trimmed.length > MAX_MESSAGE_LENGTH) return { ok: false, message: `글은 ${MAX_MESSAGE_LENGTH}자까지 보낼 수 있어요.` };
+
+  if (looksPersonal(trimmed)) return { ok: false, message: "전화번호·이메일·링크는 보낼 수 없어요. 개인정보는 함부로 공유하지 마세요." };
 
   const mine: ChatMessage = {
     id: `msg-${nowMs}-${Math.random().toString(36).slice(2, 8)}`,

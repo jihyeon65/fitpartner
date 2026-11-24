@@ -134,6 +134,13 @@ function FindGroups({
   const [error, setError] = useState("");
   // 프로필·모임·신청이 바뀌면 다시 추천을 받는다.
   const key = JSON.stringify({ me, groups: userGroups, joins: allJoins });
+  // 가상 참여자는 시간이 지나면 늘어나므로, 5초마다 같은 조건으로 조용히 다시 받아 인원(n/정원)을 맞춘다.
+  // (같은 key의 결과를 바꿔 끼우는 것이라 "불러오는 중"으로 깜빡이지 않는다.)
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((t) => t + 1), 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -152,7 +159,7 @@ function FindGroups({
         setLoaded({ key, error: "모임을 불러오지 못했어요. 잠시 후 다시 시도해 주세요." });
       });
     return () => controller.abort();
-  }, [key]);
+  }, [key, tick]);
 
   const current = loaded?.key === key ? loaded : null;
   const tooMany = pendingJoinCount(myJoins, groups, now) >= MAX_PENDING_JOINS;
@@ -227,7 +234,7 @@ function FindGroups({
             <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">
               {item.group.date} · {item.group.slot}
               {item.group.mode === "오프라인" ? ` · ${item.group.district}` : ""}
-              {item.group.place ? ` · ${item.group.place.name}` : ""} · 호스트 {item.group.hostNickname} ·{" "}
+              {item.group.place ? ` · ${item.group.place.name} (${item.group.place.address})` : ""} · 호스트 {item.group.hostNickname} ·{" "}
               {item.seatsTaken}/{item.group.capacity}명
             </p>
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">일치 조건: {item.matchedConditions.length > 0 ? item.matchedConditions.join(" · ") : "없음"}
@@ -445,7 +452,7 @@ function MyGroups({
                   <p className="text-sm text-zinc-700 dark:text-zinc-300">
                     {group.date} · {group.slot}
                     {group.mode === "오프라인" ? ` · ${group.district}` : ""}
-                    {group.place ? ` · ${group.place.name}` : ""} · {seatsTaken(group, allJoins, now)}/{group.capacity}명
+                    {group.place ? ` · ${group.place.name} (${group.place.address})` : ""} · {seatsTaken(group, allJoins, now)}/{group.capacity}명
                   </p>
                   <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     참여자: {names.length === 0 ? "아직 없어요" : names.join(", ")}
@@ -473,7 +480,9 @@ function MyGroups({
                   <span className="font-semibold text-zinc-900 dark:text-zinc-50">{groupTitle(group)}</span>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${JOIN_STYLE[status]}`}>{status}</span>
                   <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                    {group.date} · {group.slot} · 호스트 {group.hostNickname}
+                    {group.date} · {group.slot}
+                    {group.mode === "오프라인" ? ` · ${group.district}` : " · 온라인"}
+                    {group.place ? ` · ${group.place.name} (${group.place.address})` : ""} · 호스트 {group.hostNickname}
                   </span>
                   {status === "대기" ? (
                     <span className="text-sm text-zinc-600 dark:text-zinc-400">
