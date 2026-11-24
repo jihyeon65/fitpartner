@@ -195,6 +195,11 @@ function FindGroups({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-zinc-600 dark:text-zinc-400">적합도 점수는 참고용이며 매칭 성공을 보장하지 않습니다.</p>
+      {current.items[0]?.isRelaxed ? (
+        <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+          내 조건에 딱 맞는 모임이 없어서, 가장 가까운 모임을 보여드려요. 다른 조건을 확인하고 골라 주세요.
+        </p>
+      ) : null}
       {tooMany ? (
         <p className="text-sm text-amber-700 dark:text-amber-400">
           대기 중인 참여 신청이 {MAX_PENDING_JOINS}개예요. 참여가 확정되거나 만료되면 다시 신청할 수 있어요.
@@ -219,7 +224,9 @@ function FindGroups({
               {item.group.mode === "오프라인" ? ` · ${item.group.district}` : ""} · 호스트 {item.group.hostNickname} ·{" "}
               {item.seatsTaken}/{item.group.capacity}명
             </p>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">일치 조건: {item.matchedConditions.join(" · ")}</p>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">일치 조건: {item.matchedConditions.length > 0 ? item.matchedConditions.join(" · ") : "없음"}
+              {item.isRelaxed && item.differences.length > 0 ? ` · 다른 조건: ${item.differences.join(", ")}` : ""}
+            </p>
             <div className="mt-3">
               <button
                 type="button"

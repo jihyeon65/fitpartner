@@ -25,6 +25,8 @@ interface RecommendItem {
   /** 만나는 방식 (작업 22번) */
   meetMode: Mode;
   isReference: boolean;
+  isRelaxed: boolean;
+  differences: string[];
 }
 
 /** 어떤 프로필로 요청한 결과인지(key)와 그 결과를 함께 들고 있어서, 프로필이 바뀌면 "불러오는 중"으로 돌아간다. */
@@ -110,6 +112,11 @@ export default function RecommendList() {
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         적합도 점수는 참고용이며 매칭 성공을 보장하지 않습니다.
       </p>
+      {items[0]?.isRelaxed ? (
+        <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+          내 조건에 딱 맞는 파트너가 없어서, 가장 가까운 사람을 보여드려요. 다른 조건을 확인하고 골라 주세요.
+        </p>
+      ) : null}
       <ul className="flex flex-col gap-4">
         {items.map((item) => (
           // 내 프로필이 바뀌면 카드를 새로 만들어, 이전 프로필로 받은 AI 분석이 남지 않게 한다.
@@ -175,7 +182,8 @@ function RecommendCard({
         {item.isReference ? <Badge text="참고용 후보" tone="amber" /> : null}
       </div>
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-        일치 조건: {item.matchedConditions.join(" · ")}
+        일치 조건: {item.matchedConditions.length > 0 ? item.matchedConditions.join(" · ") : "없음"}
+        {item.isRelaxed && item.differences.length > 0 ? ` · 다른 조건: ${item.differences.join(", ")}` : ""}
       </p>
       <AnalysisPanel me={me} candidateId={item.profile.id} />
       <div className="mt-3 flex flex-wrap items-center gap-3">

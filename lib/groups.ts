@@ -395,6 +395,9 @@ export interface GroupRecommendation {
   meetMode: Mode;
   /** 60점 이상인 모임이 없어서 점수 기준을 낮춰 보여주는 "참고용" 모임인지 */
   isReference: boolean;
+  /** 조건에 맞는 모임이 없어서 조건을 풀고 보여주는 대체 모임인지, 그때 다른 조건 */
+  isRelaxed: boolean;
+  differences: string[];
   seatsLeft: number;
   seatsTaken: number;
 }
@@ -445,6 +448,8 @@ export function recommendGroups(
         matchedConditions: item.matchedConditions,
         meetMode: item.meetMode,
         isReference: item.isReference,
+        isRelaxed: item.isRelaxed,
+        differences: item.differences,
         seatsLeft: seatsLeft(group, allJoins, nowMs),
         seatsTaken: seatsTaken(group, allJoins, nowMs),
       },

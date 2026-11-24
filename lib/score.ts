@@ -5,7 +5,7 @@
 // Plan: 작업 7번 "적합도 점수 계산"
 //
 // 화면 없이 계산만 하는 코드라서, 같은 입력이면 항상 같은 결과가 나온다.
-import { filterCandidates, matchMeetMode, overlappingSlots } from "./filter";
+import { filterCandidates, matchMeetMode, overlappingSlots, passesRequiredConditions } from "./filter";
 import type { Mode, Profile } from "./options";
 // 실력 차이(단계)를 구하는 기준은 작업 8번에서 만든 lib/skill-gap.ts 한 곳에서만 정한다.
 import { levelGap } from "./skill-gap";
@@ -49,6 +49,13 @@ export interface Recommendation {
   meetMode: Mode;
   /** 60점 이상인 후보가 없어서 점수 기준을 낮춰 보여주는 "참고용 후보"인지 */
   isReference: boolean;
+  /**
+   * 필수 조건(종목·진행 방식·시간·파트너 조건)을 통과한 후보가 한 명도 없어서, 조건을 풀고 가장 가까운 후보를 보여주는 "대체 후보"인지.
+   * 이때도 선택은 사용자가 한다. 어떤 조건이 다른지는 differences에 담는다.
+   */
+  isRelaxed: boolean;
+  /** 대체 후보일 때 내 조건과 다른 부분 (예: "종목", "시간대"). 일반 후보는 빈 목록 */
+  differences: string[];
 }
 
 /** 후보 한 명의 점수를 항목별로 계산한다. (필수 조건을 통과한 후보에게 쓰는 것을 전제로 한다) */
@@ -63,7 +70,7 @@ export function scoreCandidate(me: Profile, candidate: Profile): ScoreBreakdown 
 
 /** 화면에 보여줄 "일치한 조건" 목록을 만든다. */
 function matchedConditionsOf(me: Profile, candidate: Profile): string[] {
-  const matched = ["종목"];
+  const matched: string[] = me.sport === candidate.sport ? ["종목"] : [];
   const overlap = overlappingSlots(me, candidate).length;
   if (overlap > 0) matched.push(`시간 ${overlap}개`);
   const gap = levelGap(me, candidate);
@@ -82,7 +89,10 @@ function matchedConditionsOf(me: Profile, candidate: Profile): string[] {
  *  - 필수 조건을 통과한 후보가 없으면 빈 목록
  */
 export function recommend(me: Profile, candidates: readonly Profile[]): Recommendation[] {
-  const scored = filterCandidates(me, candidates)
+  const passed = filterCandidates(me, candidates);
+  // 필수 조건을 통과한 후보가 없으면 빈 화면 대신, 조건을 풀어서 가장 가까운 후보를 보여준다.
+  if (passed.length === 0) return recommendRelaxed(me, candidates);
+  const scored = passed
     .map((profile) => {
       const breakdown = scoreCandidate(me, profile);
       return {
@@ -93,6 +103,8 @@ export function recommend(me: Profile, candidates: readonly Profile[]): Recommen
         levelGap: levelGap(me, profile),
         // 필수 조건을 통과한 후보라서 항상 값이 있다.
         meetMode: matchMeetMode(me, profile) ?? "오프라인",
+        isRelaxed: false,
+        differences: [] as string[],
       };
     })
     // 정렬은 원래 순서를 지키는 안정 정렬이라, 점수와 실력 차이가 같으면 후보의 원래 순서가 남는다.
@@ -103,4 +115,40 @@ export function recommend(me: Profile, candidates: readonly Profile[]): Recommen
   return (isReference ? scored : recommended)
     .slice(0, MAX_RECOMMENDATIONS)
     .map((item) => ({ ...item, isReference }));
+}
+
+/** 내 조건과 다른 필수 조건 이름들 */
+function differencesOf(me: Profile, candidate: Profile): string[] {
+  const diffs: string[] = [];
+  if (candidate.sport !== me.sport) diffs.push("종목");
+  if (matchMeetMode(me, candidate) === null) diffs.push("진행 방식·지역");
+  if (overlappingSlots(me, candidate).length === 0) diffs.push("시간대");
+  if (diffs.length === 0 && !passesRequiredConditions(me, candidate)) diffs.push("파트너 조건");
+  return diffs;
+}
+
+/**
+ * 대체 후보: 필수 조건을 풀고 나 자신만 뺀 뒤, 내 조건과 덜 다른 순서(다른 조건 수 → 점수 → 실력 차이)로 최대 5명.
+ * 만나는 방식은 둘 다 가능한 방식이 없으면 내가 고른 첫 번째 방식으로 둔다.
+ */
+function recommendRelaxed(me: Profile, candidates: readonly Profile[]): Recommendation[] {
+  return candidates
+    .filter((c) => c.id !== me.id && c.nickname !== me.nickname)
+    .map((profile) => {
+      const breakdown = scoreCandidate(me, profile);
+      const differences = differencesOf(me, profile);
+      return {
+        profile,
+        score: breakdown.total,
+        breakdown,
+        matchedConditions: matchedConditionsOf(me, profile),
+        levelGap: levelGap(me, profile),
+        meetMode: matchMeetMode(me, profile) ?? me.modes[0] ?? "오프라인",
+        isReference: true,
+        isRelaxed: true,
+        differences,
+      };
+    })
+    .sort((a, b) => a.differences.length - b.differences.length || b.score - a.score || a.levelGap - b.levelGap)
+    .slice(0, MAX_RECOMMENDATIONS);
 }
