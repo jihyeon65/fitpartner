@@ -3,6 +3,8 @@
 // Design Ref: §12.5 화면 — /groups: 모임 찾기(추천 모임 카드·[참여 신청]), 모임 만들기(선택형), 내 모임(만든 모임·참여 신청 상태)
 //   모임에는 AI 분석을 붙이지 않고 점수와 일치 조건만 보여준다. (§12.4) 점수 안내 문구는 항상 보여준다.
 // Plan: 작업 25번 "모임 화면" — 모임 일정과 "운동 완료"는 작업 26번에서 이어서 만든다.
+import { canChat } from "@/lib/chat";
+import GroupChat from "./GroupChat";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -374,6 +376,7 @@ function MyGroups({
                   <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     참여자: {names.length === 0 ? "아직 없어요" : names.join(", ")}
                   </p>
+                  {canChat(group, me, myJoins, now) ? <GroupChat group={group} me={me} allJoins={allJoins} /> : null}
                 </li>
               );
             })}
@@ -403,6 +406,7 @@ function MyGroups({
                       만료까지 {formatRemaining(Math.max(0, Date.parse(join.expiresAt) - now))}
                     </span>
                   ) : null}
+                  {canChat(group, me, myJoins, now) ? <GroupChat group={group} me={me} allJoins={allJoins} /> : null}
                 </li>
               );
             })}

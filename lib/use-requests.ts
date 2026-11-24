@@ -1,10 +1,14 @@
 // Design Ref: §3.4 매칭 — 화면에서 이 닉네임의 보낸 요청 목록을 읽는 훅, 시간이 흐르면 상태가 바뀌도록 현재 시각도 준다.
 // Plan: 작업 14번 "매칭 요청"
 import { useMemo, useSyncExternalStore } from "react";
+import type { ChatMessage } from "./chat";
 import type { UserRecord } from "./metrics";
 import type { Group, GroupJoin, MatchRequest, Schedule } from "./options";
 import {
   getAllGroupJoinsSnapshot,
+  getChatJson,
+  parseChat,
+  subscribeChat,
   getAllUsersSnapshot,
   getGroupJoinsJson,
   getGroupsJson,
@@ -121,4 +125,10 @@ function getTick(): number {
 /** 1초마다 바뀌는 현재 시각(밀리초). 남은 시간·3초 뒤 수락 표시를 갱신하는 데 쓴다. */
 export function useNow(): number {
   return useSyncExternalStore(subscribeTick, getTick, () => 0);
+}
+
+/** 한 모임의 채팅 글 전체. undefined는 아직 저장소를 읽기 전이라는 뜻이다. */
+export function useGroupChat(groupId: string): ChatMessage[] | undefined {
+  const json = useSyncExternalStore(subscribeChat, () => getChatJson(groupId), () => undefined);
+  return useMemo(() => (json === undefined ? undefined : parseChat(json)), [json]);
 }

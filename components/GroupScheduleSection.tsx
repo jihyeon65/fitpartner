@@ -6,6 +6,7 @@
 //
 // 호스트(내가 만든 모임)의 완료는 모임(Group.hostDone)에, 참여자의 완료는 참여 신청(GroupJoin.done)에 저장한다.
 import { useMemo, useState } from "react";
+import GroupChat from "./GroupChat";
 import {
   buildSeedGroups,
   groupTitle,
@@ -94,6 +95,7 @@ export default function GroupScheduleSection({ me }: { me: Profile }) {
               >
                 {item.done ? "✓ " : ""}내 운동 완료
               </button>
+              {item.group.mode === "온라인" ? <GroupChat group={item.group} me={me} allJoins={allJoins} /> : null}
             </li>
           ))}
         </ul>

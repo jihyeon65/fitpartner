@@ -24,6 +24,7 @@ import {
   type SchedulePlace,
   type Slot,
 } from "./options";
+import { sanitizeMessages, type ChatMessage } from "./chat";
 import { sanitizeGroupJoins, sanitizeGroups } from "./groups";
 import type { UserRecord } from "./metrics";
 
@@ -704,6 +705,62 @@ export function subscribeGroupJoins(callback: () => void): () => void {
   window.addEventListener("storage", onStorage);
   return () => {
     window.removeEventListener(GROUP_JOINS_EVENT, callback);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+// ───────────── 온라인 모임 채팅방 (이 브라우저의 모든 닉네임이 같은 방을 본다) ─────────────
+
+const CHAT_EVENT = "fitpartner:chat-changed";
+
+function chatKey(groupId: string): string {
+  return `fitpartner:chat:${encodeURIComponent(groupId)}`;
+}
+
+/** 저장된 채팅 글 원문(JSON 글자). 없거나 저장소를 쓸 수 없으면 null */
+export function getChatJson(groupId: string): string | null {
+  const storage = getStorage();
+  if (!storage) return null;
+  try {
+    return storage.getItem(chatKey(groupId));
+  } catch {
+    return null;
+  }
+}
+
+/** 저장된 글자를 채팅 글 목록으로 바꾼다. (저장소 값은 직접 고칠 수 있으므로 올바른 글만 남긴다) */
+export function parseChat(json: string | null): ChatMessage[] {
+  if (json === null) return [];
+  try {
+    return sanitizeMessages(JSON.parse(json));
+  } catch {
+    return [];
+  }
+}
+
+/** 한 모임의 채팅 글 전체를 저장한다. 성공하면 true */
+export function saveChat(groupId: string, messages: ChatMessage[]): boolean {
+  const storage = getStorage();
+  if (!storage) return false;
+  try {
+    storage.setItem(chatKey(groupId), JSON.stringify(messages));
+  } catch {
+    return false;
+  }
+  window.dispatchEvent(new Event(CHAT_EVENT));
+  return true;
+}
+
+/** 채팅 글이 바뀌면 callback을 부른다. */
+export function subscribeChat(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key.startsWith("fitpartner:chat:")) callback();
+  };
+  window.addEventListener(CHAT_EVENT, callback);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(CHAT_EVENT, callback);
     window.removeEventListener("storage", onStorage);
   };
 }
