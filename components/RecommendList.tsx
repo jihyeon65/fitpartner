@@ -188,7 +188,7 @@ function RecommendCard({
   }
 
   return (
-    <li className="surface tilt rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+    <li className="surface rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{item.profile.nickname}</span>
         <span className="text-zinc-700 dark:text-zinc-300">적합도 {item.score}점</span>
