@@ -4,8 +4,12 @@
 // Plan: 작업 16번 "시설 샘플 데이터 만들기"
 import { DISTRICTS, FACILITY_SPORTS } from "@/lib/options";
 import { findPlaces } from "@/lib/places";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function GET(request: Request) {
+  const limited = rateLimit(request, "places", 120, 60_000);
+  if (limited) return limited;
+
   const { searchParams } = new URL(request.url);
   const sport = searchParams.get("sport");
   const district = searchParams.get("district");

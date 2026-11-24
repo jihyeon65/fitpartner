@@ -2,10 +2,14 @@
 // Design Ref: §4.1 추천 흐름 — 점수는 AI가 아니라 코드가 계산한다.
 // Plan: 작업 9번 "추천 결과 화면(AI 없이 먼저)"
 import { VIRTUAL_PROFILES } from "@/lib/profiles";
+import { rateLimit } from "@/lib/rate-limit";
 import { recommend } from "@/lib/score";
 import { checkProfileInput } from "@/lib/validate-profile";
 
 export async function POST(request: Request) {
+  const limited = rateLimit(request, "recommend", 120, 60_000);
+  if (limited) return limited;
+
   let body: unknown;
   try {
     body = await request.json();

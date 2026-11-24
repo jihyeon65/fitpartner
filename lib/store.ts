@@ -764,3 +764,58 @@ export function subscribeChat(callback: () => void): () => void {
     window.removeEventListener("storage", onStorage);
   };
 }
+
+// ───────────── 내 기록 지우기 (공용 PC 대비) ─────────────
+
+/**
+ * 이 닉네임의 기록을 이 브라우저에서 모두 지운다: 프로필·요청·일정·임시 값·참여 신청, 내가 만든 모임,
+ * 내가 보낸 채팅 글, 현재 닉네임. 다른 닉네임의 기록과 가상 데이터는 건드리지 않는다. 성공하면 true
+ */
+export function clearUserData(nickname: string): boolean {
+  const storage = getStorage();
+  if (!storage) return false;
+  try {
+    const prefix = `fitpartner:user:${encodeURIComponent(nickname)}:`;
+    const keys: string[] = [];
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i);
+      if (key && key.startsWith(prefix)) keys.push(key);
+    }
+    keys.forEach((key) => storage.removeItem(key));
+
+    // 내가 만든 모임과 내가 보낸 채팅 글
+    const groups = parseGroups(storage.getItem(GROUPS_KEY));
+    const mine = groups.filter((g) => g.hostNickname === nickname);
+    storage.setItem(GROUPS_KEY, JSON.stringify(groups.filter((g) => g.hostNickname !== nickname)));
+    const chatKeys: string[] = [];
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i);
+      if (key && key.startsWith("fitpartner:chat:")) chatKeys.push(key);
+    }
+    for (const key of chatKeys) {
+      const kept = parseChat(storage.getItem(key)).filter((m) => m.virtual || m.sender !== nickname);
+      if (kept.length === 0) storage.removeItem(key);
+      else storage.setItem(key, JSON.stringify(kept));
+    }
+    // 내가 만든 모임의 채팅방은 통째로 지운다.
+    mine.forEach((g) => storage.removeItem(chatKey(g.id)));
+
+    if (storage.getItem(NICKNAME_KEY) === nickname) storage.removeItem(NICKNAME_KEY);
+  } catch {
+    return false;
+  }
+  for (const name of [
+    NICKNAME_EVENT,
+    PROFILE_EVENT,
+    REQUESTS_EVENT,
+    PROGRAM_SEEN_EVENT,
+    SCHEDULES_EVENT,
+    DRAFT_EVENT,
+    GROUPS_EVENT,
+    GROUP_JOINS_EVENT,
+    CHAT_EVENT,
+  ]) {
+    window.dispatchEvent(new Event(name));
+  }
+  return true;
+}

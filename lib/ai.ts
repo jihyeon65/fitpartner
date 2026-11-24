@@ -13,6 +13,9 @@ export const AI_TIMEOUT_MS = 10_000;
 /** 사용할 AI 모델 */
 export const AI_MODEL = "gpt-4o-mini";
 
+/** AI가 한 번에 쓸 수 있는 최대 출력 토큰 (비용 상한. 분석 JSON이 잘리지 않을 만큼 넉넉하게) */
+export const AI_MAX_OUTPUT_TOKENS = 2000;
+
 /** 실패했을 때 화면에 보여주는 안내 문구 (AI 영역에만 보이고 점수 목록은 그대로 둔다) */
 export const AI_RETRY_MESSAGE = "잠시 후 다시 시도해 주세요";
 
@@ -25,7 +28,7 @@ export type AiResult = { ok: true; text: string } | { ok: false; reason: AiFailu
 export interface AiClient {
   responses: {
     create(
-      body: { model: string; instructions: string; input: string },
+      body: { model: string; instructions: string; input: string; max_output_tokens?: number },
       options: { timeout: number; maxRetries: number },
     ): Promise<{ output_text: string }>;
   };
@@ -56,7 +59,7 @@ export async function askAi(
   try {
     // 다시 시도(maxRetries)를 끄고 제한 시간을 한 번만 적용해서, 실제 대기 시간이 10초를 넘지 않게 한다.
     const response = await client.responses.create(
-      { model: AI_MODEL, instructions, input },
+      { model: AI_MODEL, instructions, input, max_output_tokens: AI_MAX_OUTPUT_TOKENS },
       { timeout: timeoutMs, maxRetries: 0 },
     );
     const text = response.output_text?.trim();
@@ -71,5 +74,6 @@ export async function askAi(
 export function aiFailureResponse(reason: AiFailure): Response {
   // 키가 없는 경우도 사용자에게는 같은 안내만 보이고, 이유는 서버 로그에만 남긴다.
   console.error(`[AI] 호출 실패: ${reason}`);
-  return Response.json({ message: AI_RETRY_MESSAGE, reason }, { status: 503 });
+  // 실패 이유(키 없음 등)는 밖으로 알려주지 않는다.
+  return Response.json({ message: AI_RETRY_MESSAGE }, { status: 503 });
 }

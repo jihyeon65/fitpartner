@@ -20,8 +20,14 @@ function isOneOf<T extends readonly (string | number)[]>(list: T, value: unknown
   return (list as readonly unknown[]).includes(value);
 }
 
+/** 선택지 안의 값만, 중복 없이, 선택지 개수를 넘지 않게 담긴 목록인지 (같은 값을 수십만 개 보내는 요청을 막는다) */
 function isListOf<T extends readonly string[]>(list: T, value: unknown): value is T[number][] {
-  return Array.isArray(value) && value.every((item) => isOneOf(list, item));
+  return (
+    Array.isArray(value) &&
+    value.length <= list.length &&
+    new Set(value).size === value.length &&
+    value.every((item) => isOneOf(list, item))
+  );
 }
 
 /**

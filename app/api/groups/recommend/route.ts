@@ -2,9 +2,17 @@
 //   요청의 모임·참여 신청 값은 모두 선택지와 맞는지 검사하고 맞지 않는 것은 버린다. (AI는 쓰지 않는다)
 // Plan: 작업 25번 "모임 화면"
 import { buildSeedGroups, recommendGroups, sanitizeGroupJoins, sanitizeGroups } from "@/lib/groups";
+import { rateLimit } from "@/lib/rate-limit";
 import { checkProfileInput } from "@/lib/validate-profile";
 
+/** 한 번에 받는 모임·참여 신청의 최대 개수 (넘으면 거절해서 계산이 오래 걸리는 요청을 막는다) */
+const MAX_GROUPS = 100;
+const MAX_JOINS = 500;
+
 export async function POST(request: Request) {
+  const limited = rateLimit(request, "groups-recommend", 120, 60_000);
+  if (limited) return limited;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -20,6 +28,10 @@ export async function POST(request: Request) {
   const me = checkProfileInput(meInput);
   if (!me.ok) {
     return Response.json({ message: `${me.missing.join(", ")}을 선택해 주세요.` }, { status: 400 });
+  }
+
+  if ((Array.isArray(groups) && groups.length > MAX_GROUPS) || (Array.isArray(joins) && joins.length > MAX_JOINS)) {
+    return Response.json({ message: "보낸 모임이나 신청이 너무 많아요." }, { status: 400 });
   }
 
   const nowMs = Date.now();

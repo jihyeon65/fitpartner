@@ -70,15 +70,23 @@ function virtualVoices(group: Group, allJoins: readonly GroupJoin[], nowMs: numb
   return names;
 }
 
+/** 한글로 쓴 숫자(전화번호를 "공일공…"처럼 적는 경우)에 쓰는 글자 */
+const KOREAN_DIGITS = /[공영일이삼사오육칠팔구]{7,}/;
+
 /**
- * 개인정보로 보이는 글인지: 전화번호(숫자 9자리 이상), 이메일, 링크는 보내지 않는다.
+ * 개인정보로 보이는 글인지: 전화번호(숫자 9자리 이상, 구분 문자·한글 숫자 포함), 이메일(골뱅이·dot 표기 포함),
+ * 링크, @아이디, 다른 메신저(카톡·인스타·오픈채팅·텔레그램) 연락 유도는 보내지 않는다.
  * 자유 입력이라 완벽하게 막을 수는 없으므로, 눈에 띄는 형식만 막고 상단 안내 문구를 함께 둔다.
  */
 export function looksPersonal(text: string): boolean {
-  const digitsOnly = text.replace(/[\s.\-()]/g, "");
-  if (/\d{9,}/.test(digitsOnly)) return true;
+  const compact = text.replace(/[\s.\-()/_·,]/g, "");
+  if (/\d{9,}/.test(compact)) return true;
+  if (KOREAN_DIGITS.test(compact)) return true;
   if (/[\w.+-]+@[\w-]+\.[\w.-]+/.test(text)) return true;
+  if (/\w+\s*(\bat\b|골뱅이)\s*\w+\s*(\bdot\b|점)\s*\w+/i.test(text)) return true;
+  if (/@[\w가-힣._]{3,}/.test(text)) return true;
   if (/(https?:\/\/|www\.)\S+/i.test(text)) return true;
+  if (/(카톡|카카오톡|카카오\s*id|오픈\s*채팅|인스타|텔레그램|텔레)/i.test(text)) return true;
   return false;
 }
 
@@ -100,7 +108,7 @@ export function sendMessage(
   if (trimmed.length === 0) return { ok: false, message: "보낼 글을 입력해 주세요." };
   if (trimmed.length > MAX_MESSAGE_LENGTH) return { ok: false, message: `글은 ${MAX_MESSAGE_LENGTH}자까지 보낼 수 있어요.` };
 
-  if (looksPersonal(trimmed)) return { ok: false, message: "전화번호·이메일·링크는 보낼 수 없어요. 개인정보는 함부로 공유하지 마세요." };
+  if (looksPersonal(trimmed)) return { ok: false, message: "전화번호·이메일·링크·다른 메신저 아이디는 보낼 수 없어요. 개인정보는 함부로 공유하지 마세요." };
 
   const mine: ChatMessage = {
     id: `msg-${nowMs}-${Math.random().toString(36).slice(2, 8)}`,

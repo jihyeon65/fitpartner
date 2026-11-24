@@ -2,6 +2,7 @@
 // Plan: 작업 4번 "닉네임만 입력하는 실습용 간단 로그인"
 import Logo from "@/components/Logo";
 import NicknameForm from "@/components/NicknameForm";
+import PrivacyNotice from "@/components/PrivacyNotice";
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
       </div>
 
       <NicknameForm />
+      <PrivacyNotice />
     </section>
   );
 }

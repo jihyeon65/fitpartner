@@ -5,9 +5,16 @@
 import { aiFailureResponse, askAi } from "@/lib/ai";
 import { ANALYSIS_INSTRUCTIONS, buildAnalysisInput, checkAnalysis } from "@/lib/analysis";
 import { VIRTUAL_PROFILES } from "@/lib/profiles";
+import { rateLimit } from "@/lib/rate-limit";
 import { checkProfileInput } from "@/lib/validate-profile";
 
+/** 한 주소가 1분에 AI 분석을 부를 수 있는 횟수 (추천 카드 5장 × 몇 번 정도) */
+const ANALYZE_LIMIT_PER_MINUTE = 20;
+
 export async function POST(request: Request) {
+  const limited = rateLimit(request, "analyze", ANALYZE_LIMIT_PER_MINUTE, 60_000);
+  if (limited) return limited;
+
   let body: unknown;
   try {
     body = await request.json();
