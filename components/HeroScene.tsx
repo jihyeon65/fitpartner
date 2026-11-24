@@ -33,7 +33,7 @@ export default function HeroScene() {
           className="scene-layer surface w-60 rounded-2xl border p-4"
           style={{ left: "2%", top: "44%", transform: "translateZ(20px)", ["--d" as string]: "0.1s" }}
         >
-          <div className="mb-3 h-20 rounded-xl bg-[radial-gradient(circle_at_30%_30%,#a7f3d0,transparent_55%),linear-gradient(135deg,#d1fae5,#bae6fd)] dark:bg-[radial-gradient(circle_at_30%_30%,#065f46,transparent_55%),linear-gradient(135deg,#064e3b,#0c4a6e)]" />
+          <div className="mb-3 h-20 rounded-xl bg-[radial-gradient(circle_at_30%_30%,#d3cbff,transparent_55%),linear-gradient(135deg,#e7e2ff,#ffd9d3)] dark:bg-[radial-gradient(circle_at_30%_30%,#4a2fbf,transparent_55%),linear-gradient(135deg,#2a1a7a,#5a2a3a)]" />
           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">랠리 체육관</p>
           <p className="text-xs text-zinc-600 dark:text-zinc-400">배드민턴 · 유성구</p>
         </div>
@@ -57,7 +57,7 @@ export default function HeroScene() {
             </span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-            <div className="h-full w-[65%] rounded-full bg-gradient-to-r from-emerald-500 to-sky-400" />
+            <div className="h-full w-[65%] rounded-full bg-gradient-to-r from-emerald-500 to-[#ff6b5b]" />
           </div>
         </div>
 
@@ -72,7 +72,7 @@ export default function HeroScene() {
           </div>
           <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-50">맨몸운동 평일 저녁 모임</p>
           <div className="mt-3 flex -space-x-2">
-            {["bg-emerald-500", "bg-sky-500", "bg-amber-500", "bg-rose-400"].map((c) => (
+            {["bg-emerald-500", "bg-[#ff6b5b]", "bg-amber-400", "bg-sky-400"].map((c) => (
               <span key={c} className={`h-7 w-7 rounded-full border-2 border-white ${c} dark:border-zinc-900`} />
             ))}
           </div>

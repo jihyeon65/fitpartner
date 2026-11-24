@@ -24,7 +24,7 @@ function markerIcon(selected: boolean): L.DivIcon {
   const size = selected ? 22 : 16;
   return L.divIcon({
     className: "",
-    html: `<span style="display:block;width:${size}px;height:${size}px;border-radius:50%;border:3px solid #fff;background:${selected ? "#dc2626" : "#059669"};box-shadow:0 1px 4px rgba(0,0,0,.5)"></span>`,
+    html: `<span style="display:block;width:${size}px;height:${size}px;border-radius:50%;border:3px solid #fff;background:${selected ? "#ff6b5b" : "#6b4eff"};box-shadow:0 1px 4px rgba(0,0,0,.5)"></span>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
