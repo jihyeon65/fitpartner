@@ -81,7 +81,9 @@ export default function GroupScheduleSection({ me }: { me: Profile }) {
               <p className="text-sm text-zinc-700 dark:text-zinc-300">
                 {item.group.mode === "온라인"
                   ? "방식: 온라인 (각자 있는 곳에서 화상·메신저로 함께 운동해요)"
-                  : `방식: 오프라인 · ${item.group.district}`}
+                  : `방식: 오프라인 · ${item.group.district}${
+                      item.group.place ? ` · 장소: ${item.group.place.name} (${item.group.place.address})` : ""
+                    }`}
               </p>
               <button
                 type="button"

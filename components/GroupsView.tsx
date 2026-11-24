@@ -23,6 +23,7 @@ import {
 import { formatRemaining } from "@/lib/match";
 import {
   DISTRICTS,
+  FACILITY_SPORTS,
   GOALS,
   GROUP_CAPACITIES,
   LEVELS,
@@ -33,7 +34,9 @@ import {
   type Group,
   type GroupCapacity,
   type GroupJoin,
+  type Place,
   type Profile,
+  type SchedulePlace,
 } from "@/lib/options";
 import { VIRTUAL_PROFILES } from "@/lib/profiles";
 import { todayString } from "@/lib/schedule";
@@ -223,7 +226,8 @@ function FindGroups({
             </div>
             <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">
               {item.group.date} · {item.group.slot}
-              {item.group.mode === "오프라인" ? ` · ${item.group.district}` : ""} · 호스트 {item.group.hostNickname} ·{" "}
+              {item.group.mode === "오프라인" ? ` · ${item.group.district}` : ""}
+              {item.group.place ? ` · ${item.group.place.name}` : ""} · 호스트 {item.group.hostNickname} ·{" "}
               {item.seatsTaken}/{item.group.capacity}명
             </p>
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">일치 조건: {item.matchedConditions.length > 0 ? item.matchedConditions.join(" · ") : "없음"}
@@ -259,11 +263,12 @@ function CreateGroup({ me, onCreated }: { me: Profile; onCreated: () => void }) 
   const [goal, setGoal] = useState<(typeof GOALS)[number]>(me.goal);
   const [style, setStyle] = useState<(typeof STYLES)[number]>(me.style);
   const [capacity, setCapacity] = useState<GroupCapacity>(4);
+  const [place, setPlace] = useState<SchedulePlace | null>(null);
   const [error, setError] = useState("");
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = createGroup({ sport, mode, district, slot, date, level, goal, style, capacity }, me, Date.now());
+    const result = createGroup({ sport, mode, district, slot, date, level, goal, style, capacity, place }, me, new Date().getTime());
     if (!result.ok) {
       setError(result.message);
       return;
@@ -291,6 +296,7 @@ function CreateGroup({ me, onCreated }: { me: Profile; onCreated: () => void }) 
       <SingleChoice legend="종목" options={SPORTS} value={sport} onChange={clear(setSport)} />
       <SingleChoice legend="진행 방식" options={MODES} value={mode} onChange={clear(setMode)} />
       <SingleChoice legend="구" options={DISTRICTS} value={district} onChange={clear(setDistrict)} />
+      {mode === "오프라인" ? <PlacePicker sport={sport} district={district} value={place} onChange={setPlace} /> : null}
       <SingleChoice legend="시간대" options={SLOTS} value={slot} onChange={clear(setSlot)} />
       <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         모임 날짜
@@ -327,6 +333,64 @@ function CreateGroup({ me, onCreated }: { me: Profile; onCreated: () => void }) 
         모임 만들기
       </button>
     </form>
+  );
+}
+
+/** 오프라인 모임의 운동 장소(선택): 고른 종목·구의 시설 목록에서 하나 고른다. 다시 누르면 선택이 풀린다. */
+function PlacePicker({
+  sport,
+  district,
+  value,
+  onChange,
+}: {
+  sport: (typeof SPORTS)[number];
+  district: (typeof DISTRICTS)[number];
+  value: SchedulePlace | null;
+  onChange: (place: SchedulePlace | null) => void;
+}) {
+  const facilitySport = FACILITY_SPORTS.find((s) => s === sport);
+  const key = `${facilitySport}|${district}`;
+  const [loaded, setLoaded] = useState<{ key: string; places: Place[] } | { key: string; error: true } | null>(null);
+
+  useEffect(() => {
+    if (!facilitySport) return;
+    const controller = new AbortController();
+    fetch(`/api/places?${new URLSearchParams({ sport: facilitySport, district })}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("failed");
+        setLoaded({ key, places: (await response.json()) as Place[] });
+      })
+      .catch((reason: unknown) => {
+        if (reason instanceof DOMException && reason.name === "AbortError") return;
+        setLoaded({ key, error: true });
+      });
+    return () => controller.abort();
+  }, [key, facilitySport, district]);
+
+  if (!facilitySport) {
+    return <p className="text-sm text-zinc-500 dark:text-zinc-400">운동 장소: 이 종목은 시설 정보가 없어서 장소를 고르지 않아도 돼요.</p>;
+  }
+  const current = loaded?.key === key ? loaded : null;
+  if (current === null) return <p className="text-sm text-zinc-500 dark:text-zinc-400">운동 장소 목록을 불러오는 중이에요…</p>;
+  if ("error" in current) return <p className="text-sm text-amber-700 dark:text-amber-400">시설 정보를 불러오지 못했어요. 장소 없이도 모임을 만들 수 있어요.</p>;
+  if (current.places.length === 0) return <p className="text-sm text-zinc-500 dark:text-zinc-400">이 조건의 시설을 찾지 못했어요. 장소 없이도 모임을 만들 수 있어요.</p>;
+
+  // 종목·구를 바꿔서 목록에 없는 장소가 되면 선택하지 않은 것으로 본다.
+  const selected = current.places.find((p) => p.id === value?.id) ?? null;
+  return (
+    <div className="flex flex-col gap-1">
+      <SingleChoice
+        legend="운동 장소 (선택)"
+        hint={selected ? selected.address : "고르지 않아도 돼요. 시설 정보는 샘플 데이터입니다."}
+        options={current.places.map((p) => p.id)}
+        getLabel={(id) => current.places.find((p) => p.id === id)?.name ?? id}
+        value={selected?.id ?? null}
+        onChange={(id) => {
+          const place = current.places.find((p) => p.id === id);
+          onChange(place ? { id: place.id, name: place.name, address: place.address } : null);
+        }}
+      />
+    </div>
   );
 }
 
@@ -371,7 +435,8 @@ function MyGroups({
                   <p className="font-semibold text-zinc-900 dark:text-zinc-50">{groupTitle(group)}</p>
                   <p className="text-sm text-zinc-700 dark:text-zinc-300">
                     {group.date} · {group.slot}
-                    {group.mode === "오프라인" ? ` · ${group.district}` : ""} · {seatsTaken(group, allJoins, now)}/{group.capacity}명
+                    {group.mode === "오프라인" ? ` · ${group.district}` : ""}
+                    {group.place ? ` · ${group.place.name}` : ""} · {seatsTaken(group, allJoins, now)}/{group.capacity}명
                   </p>
                   <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     참여자: {names.length === 0 ? "아직 없어요" : names.join(", ")}

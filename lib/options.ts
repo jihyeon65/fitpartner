@@ -151,6 +151,8 @@ export interface Group {
   createdAt: string;
   /** 호스트를 뺀 가상 참여자 프로필 id. (내가 만든 모임은 시각에 따라 자동으로 늘어난다 — lib/groups.ts) */
   members: string[];
+  /** 오프라인 모임의 운동 장소 (선택 사항). 온라인 모임에는 없다. */
+  place?: SchedulePlace;
   /** 내가 만든 모임에서 호스트(나)의 "운동 완료" 체크. 참여자의 체크는 GroupJoin.done에 둔다. */
   hostDone?: boolean;
 }

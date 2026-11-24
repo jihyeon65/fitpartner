@@ -22,6 +22,7 @@ import {
   type GroupJoin,
   type Mode,
   type Profile,
+  type SchedulePlace,
 } from "./options";
 import { NON_ACCEPTING_PROFILE_IDS, VIRTUAL_PROFILES } from "./profiles";
 import { recommend } from "./score";
@@ -225,11 +226,23 @@ export interface GroupInput {
   goal: unknown;
   style: unknown;
   capacity: unknown;
+  /** 운동 장소 (선택 사항, 오프라인 모임에서만 저장한다) */
+  place?: unknown;
+}
+
+/** 장소 값이 올바른 모양(id·이름·주소가 글자)이면 돌려주고, 아니면 undefined */
+function parseGroupPlace(value: unknown): SchedulePlace | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const p = value as Record<string, unknown>;
+  if (typeof p.id !== "string" || typeof p.name !== "string" || typeof p.address !== "string") return undefined;
+  if (p.id === "" || p.name === "" || p.name.length > 100 || p.address.length > 200) return undefined;
+  return { id: p.id, name: p.name, address: p.address };
 }
 
 /** 모임을 만든다. 선택지 밖의 값, 지난 날짜, 시간대와 맞지 않는 요일은 거절한다. */
 export function createGroup(input: GroupInput, host: Pick<Profile, "id" | "nickname">, nowMs: number): CreateGroupResult {
   const { sport, mode, district, slot, date, level, goal, style, capacity } = input;
+  const place = mode === "오프라인" ? parseGroupPlace(input.place) : undefined;
   if (!isOneOf(SPORTS, sport)) return { ok: false, message: "종목을 선택해 주세요." };
   if (!isOneOf(MODES, mode)) return { ok: false, message: "진행 방식을 선택해 주세요." };
   if (!isOneOf(DISTRICTS, district)) return { ok: false, message: "구를 선택해 주세요." };
@@ -261,6 +274,7 @@ export function createGroup(input: GroupInput, host: Pick<Profile, "id" | "nickn
       capacity,
       createdAt: new Date(nowMs).toISOString(),
       members: [],
+      ...(place ? { place } : {}),
     },
   };
 }
@@ -314,7 +328,7 @@ export function sanitizeGroups(value: unknown): Group[] {
       continue;
     }
     const made = createGroup(
-      { sport: g.sport, mode: g.mode, district: g.district, slot: g.slot, date: g.date, level: g.level, goal: g.goal, style: g.style, capacity: g.capacity },
+      { sport: g.sport, mode: g.mode, district: g.district, slot: g.slot, date: g.date, level: g.level, goal: g.goal, style: g.style, capacity: g.capacity, place: g.place },
       { id: g.hostId, nickname: g.hostNickname },
       // 저장돼 있던 모임은 이미 지난 날짜일 수도 있으므로, 날짜의 "지난 날짜" 검사가 걸리지 않게 아주 오래전 시각으로 만든다.
       0,
