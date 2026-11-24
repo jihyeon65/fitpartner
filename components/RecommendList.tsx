@@ -41,6 +41,8 @@ export default function RecommendList() {
   const now = useNow();
 
   const key = profile ? JSON.stringify(profile) : null;
+  // [다시 시도]를 누를 때마다 올라가서, 같은 프로필로도 추천을 다시 불러온다.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (key === null) return;
@@ -68,7 +70,7 @@ export default function RecommendList() {
         setLoaded({ key, error: "추천을 불러오지 못했어요. 잠시 후 다시 시도해 주세요." });
       });
     return () => controller.abort();
-  }, [key]);
+  }, [key, attempt]);
 
   // 서버가 만든 첫 화면에서는 아직 브라우저 저장소를 모르므로 아무것도 그리지 않는다.
   if (nickname === undefined || profile === undefined || requests === undefined) return null;
@@ -86,9 +88,22 @@ export default function RecommendList() {
   }
   if ("error" in current) {
     return (
-      <p role="alert" className="text-red-600 dark:text-red-400">
-        {current.error}
-      </p>
+      <div className="flex flex-col items-start gap-3">
+        <p role="alert" className="text-red-600 dark:text-red-400">
+          {current.error}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            // 불러오는 중 상태로 되돌린 뒤 다시 요청한다.
+            setLoaded(null);
+            setAttempt((n) => n + 1);
+          }}
+          className="rounded-md border border-zinc-300 px-4 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        >
+          다시 시도
+        </button>
+      </div>
     );
   }
 

@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 지우기 전에 옮겨 둔 파일 보관함은 검사하지 않는다.
+    "trash-can/**",
   ]),
 ]);
 
